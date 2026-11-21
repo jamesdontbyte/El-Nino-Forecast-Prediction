@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+pandas
+numpy
+xarray
+netCDF4
+scikit-learn
+xgboost
+matplotlib
+ruff
+pytest
+jupyter
+ipykernel

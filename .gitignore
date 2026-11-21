@@ -1,0 +1,16 @@
+# Datasets (never commit data files)
+data/
+
+# Trained models
+backend/app/saved_models/
+
+# Python
+.venv/
+__pycache__/
+
+# Node
+node_modules/
+
+# Secrets
+.env
+.env.*

@@ -1,0 +1,121 @@
+# Project Requirements: El Niño Prediction System
+
+**Working title:** An AI-Driven Predictive Simulation of El Niño Impact on Philippine Agriculture
+
+**Status:** working draft. Algorithms, datasets, and thresholds may change after testing.
+
+## 1. Project Basics
+
+- **Course theme:** Predicting the Future: The Power of AI and ML
+- **Project type:** Python-based machine learning application
+- **Development approach:** flexible machine learning algorithm selection
+- **Required outputs:** a functional application, source code, and a project presentation
+- **Dataset expectation:** the professor wants students to handle a large amount of data. No minimum size was given.
+
+## 2. Goal and Scope
+
+The system forecasts El Niño conditions, estimates the effect on crops in a chosen Philippine province, and simulates how policy choices change the outcome.
+
+**In scope:** El Niño forecast, province and crop impact with a map view, and a rule-based policy simulation. Agriculture is the focus.
+
+**Out of scope:** disease prediction, a separate drought-risk feature, and reservoir monitoring. Sentinel satellite data is optional and not part of the core plan.
+
+## 3. Tech Stack
+
+- **Back end:** Python with FastAPI, run with Uvicorn
+- **Front end:** React, TypeScript, Tailwind CSS
+- **Map:** Leaflet or MapLibre
+- **Data and ML:** pandas, NumPy, xarray, netCDF4, scikit-learn, XGBoost. TensorFlow or PyTorch only if the LSTM or CNN is added.
+- **Notebooks:** Jupyter, for experiments only. Not part of the running app.
+- **Rule:** all machine learning and data processing live in the back end. React only sends inputs and displays results.
+
+## 4. User Inputs
+
+- Province in the Philippines
+- Crop (for example rice or corn)
+- Policy choices (for example irrigation support, subsidy, crop switching)
+
+The user does not pick the forecast date, horizon, or model. The system works those out.
+
+## 5. What the System Predicts
+
+### Layer 1: El Niño forecast
+
+The forecaster works in two cases:
+
+- **No event underway:** whether an El Niño is coming, when it starts, and how strong it will be.
+- **Event underway (the case now, since May 2026):** that it is active, its observed start month, and a forecast of how strong it gets and how long it lasts. Duration counts the months already observed plus the forecast months, as a range. The low end comes from the lower confidence band and the high end from the upper band. If the upper band is still at +0.5 or above in the last forecast month, the true end is unknown, so duration is reported as "from L months to at least H months" and the API marks it as open-ended (true or false).
+
+Duration is only given when an event is underway. When no event is underway, it is empty (null).
+
+The API also returns whether an event is underway (true or false).
+
+**How targets are defined (built from the ONI index):**
+
+- A month counts as El Niño when ONI is +0.5 or above, La Niña at -0.5 or below, otherwise neutral.
+- Strength uses the peak ONI of the event (weak, moderate, strong). The cutoffs are a common convention, not official NOAA categories.
+- Duration applies only to events that meet the five-season rule (five consecutive overlapping three-month periods at +0.5 or above). It is the number of months within the event where ONI is at or above +0.5. Shorter spells are not events and have no duration.
+- Duration is the weakest prediction because there are few past events. Show it as a range, not one number.
+
+### Layer 2: Impact on the chosen province and crop
+
+- Expected change in rainfall for the province
+- Expected change in crop yield for the chosen crop
+- **Land view:** a map of the province showing how the land would look under El Niño
+
+**Land view details:**
+
+- One flat 2D map with a toggle or slider between two views: a normal year (real past data) and the El Niño prediction.
+- Colors show predicted dryness or stress: green healthy, yellow stressed, red severe.
+- The user can also compare a past El Niño year (for example 2015 or 2023) against the prediction.
+- Build order: first a rainfall-based dryness map using ERA5 rainfall on a grid (coarse, about 25 km squares). Optionally upgrade later to Sentinel vegetation data (NDVI). The interface stays the same either way.
+
+### Layer 3: Simulation outcome
+
+- Rule-based agents (farmers, local government) start from the Layer 2 results.
+- The user toggles policy choices and runs the simulation.
+- Output: outcomes with and without intervention, side by side.
+- No machine learning in this layer.
+
+## 6. Datasets and Algorithms
+
+The algorithm list is a plan and might change.
+
+| Layer | Dataset | Source | Size | Status | Algorithms (plan) |
+| --- | --- | --- | --- | --- | --- |
+| 1 | ERA5 monthly data, Pacific region only (sea surface temperature, wind, pressure, rainfall) | Copernicus Climate Data Store | About 4 GB (estimate) | Confirmed source. Variables and region box still to finalize. | CNN (reads the maps), LSTM, XGBoost, Random Forest |
+| 1 | ONI index, 1950 to September 2026 (primary ONI source for labels, targets, and lag features) | NOAA (`oni.ascii.txt`) | About 920 rows | Confirmed. Downloaded. | Linear regression (baseline), logistic regression (El Niño, neutral, La Niña label), Random Forest, XGBoost, LSTM |
+| 1 | ENSO monthly indices, 1950 to April 2026 (RONI, Niño 3.4 anomaly, SOI; its ONI column is only compared with NOAA) | Kaggle | About 900 rows | Confirmed. Secondary source. SOI still to compare with NOAA. | Same as the ONI row (extra features) |
+| 1 | Equatorial Pacific buoy readings (TAO array) | Kaggle, El Nino Dataset | About 178k rows, 1980 to 1998 | Found, not yet opened. Check years and missing values. | XGBoost, LSTM |
+| 2 | Philippine palay and corn production by province | Kaggle, Palay and Corn Dataset | Not yet known | Not verified. Check years, provinces, and columns. | Ridge regression, Random Forest, K-Means (groups provinces) |
+| 2 | Philippine rainfall by province | PAGASA or ERA5 | Not yet known | Not verified. Source still to choose. | Ridge regression, Random Forest |
+| 2 | Sentinel vegetation data (optional) | Copernicus Sentinel | Not yet known | Optional. Only if the core works. | CNN or Random Forest on NDVI |
+| 3 | Layer 2 outputs as starting conditions | Generated by the system | Not applicable | Not applicable | None (rule-based agents) |
+
+ERA5 is gridded numerical data in NetCDF format, not photos. It is cut to the Pacific box (about 30°S to 30°N and 120°E to 70°W) and to the needed variables, keeping the full time range. Confirm the real size when placing the request.
+
+The buoy data ends in 1998, so it is useful for learning but does not count toward the large-data goal. Layer 2 data must be checked for matching years and time resolution, since crop data is often yearly and rainfall is monthly.
+
+## 7. Evaluation
+
+- Models that predict the ONI value are compared on MAE and RMSE. The status classifier is compared on accuracy and a confusion matrix. All models use the same split. Justify the final choice in the presentation.
+- Always include a simple baseline (linear regression) to beat.
+- Drop models that do not help.
+- State clearly that the simulation shows possible scenarios, not certain outcomes.
+
+## 8. Build Order
+
+1. Project skeleton and back end (done: folders, .venv, FastAPI /health route).
+2. Layer 1: load ENSO data, build labels, train baseline, compare models.
+3. Add ERA5 Pacific data and the deep learning models if time allows.
+4. Layer 2: impact model and the rainfall-based land view map.
+5. Layer 3: rule-based simulation.
+6. React front end connected to the API.
+7. Presentation.
+
+## 9. Open Items
+
+- Verify the Philippine crop and rainfall datasets.
+- Confirm the final ERA5 variables and region box.
+- Decide whether to add the Sentinel upgrade for the land view.
+- Finalize the list of policy choices for the simulation.
