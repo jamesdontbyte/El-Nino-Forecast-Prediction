@@ -26,9 +26,9 @@ Work top to bottom. Tick each box when done. Details are in specs/layer1-forecas
 - [x] notebooks/01_explore_enso.ipynb: list columns, date range, missing values, and plot ONI over time.
 
 ## 4. Load and clean
-- [ ] backend/app/data/load_enso.py: read ONI from NOAA's oni.ascii.txt (ANOM column), mapping each season to its centre month (DJF = January).
-- [ ] load_enso.py: read RONI, Niño 3.4 SST anomaly, and SOI from the Kaggle file, following the Kaggle loader rules in the layer1 spec. Join both on the month, one row per month.
-- [ ] Save the cleaned table to data/processed/enso_monthly.csv.
+- [x] backend/app/data/load_enso.py: read ONI from NOAA's oni.ascii.txt (ANOM column), mapping each season to its centre month (DJF = January).
+- [x] load_enso.py: read RONI, Niño 3.4 SST anomaly, and SOI from the Kaggle file, following the Kaggle loader rules in the layer1 spec. Join both on the month, one row per month.
+- [x] Save the cleaned table to data/processed/enso_monthly.csv.
 - [x] Compare the Kaggle ONI column with NOAA's oni.ascii.txt (done by hand; results are in the layer1 spec).
 - [ ] Compare the Kaggle SOI column with NOAA's soi.txt file and note any differences.
 

@@ -1,5 +1,5 @@
 # Datasets (never commit data files)
-data/
+/data/
 
 # Trained models
 backend/app/saved_models/

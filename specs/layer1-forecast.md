@@ -51,7 +51,7 @@ All labels are built from the monthly ONI index.
 - Map each season to its centre month (DJF = January, JFM = February, and so on up to NDJ = December).
 - Labels, targets, and lag features use this ONI.
 
-**Kaggle ENSO dataset:** El Nino-Southern Oscillation (ENSO) Data. Link: https://www.kaggle.com/datasets/shabanamir/enso-data/data. A secondary source for RONI, Niño 3.4 anomaly, and SOI. Its ONI column is not used for labels. It ends in April 2026.
+**Kaggle ENSO dataset:** El Nino-Southern Oscillation (ENSO) Data. Link: https://www.kaggle.com/datasets/shabanamir/enso-data/data. A secondary source for RONI, Niño 3.4 anomaly, and SOI. Its ONI column is not used for labels. ONI and RONI end in April 2026; Niño 3.4 anomaly and SOI end in May 2026.
 
 **Kaggle vs NOAA ONI comparison:** the months align when each NOAA season is mapped to its centre month (shifting by one month either way fits worse). The values are not identical. The mean absolute difference is 0.07, and 49 months change status (El Niño, neutral, or La Niña) depending on which file is used. The likely cause, for example an older NOAA data version in the Kaggle file, is not confirmed.
 
