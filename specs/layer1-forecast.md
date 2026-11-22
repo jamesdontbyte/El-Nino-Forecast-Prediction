@@ -31,7 +31,8 @@ Report whether an El Niño is underway. If none, predict whether one is coming, 
 All labels are built from the monthly ONI index.
 
 - **Event status:** El Niño when ONI is +0.5 or above. La Niña when ONI is -0.5 or below. Neutral otherwise.
-- **Event:** NOAA requires five consecutive overlapping three-month periods at the threshold. Confirm this rule against NOAA before coding. (to confirm)
+- **Event:** NOAA requires five consecutive overlapping three-month periods at the threshold. Confirmed on NOAA's ONI page.
+- This five-season rule is NOAA's historical ONI convention. NOAA's operational definition now uses RONI.
 - **Strength:** uses the peak ONI of the event. Weak from 0.5 to 0.9, moderate from 1.0 to 1.4, strong from 1.5 and above. These cutoffs are a common convention, not official NOAA categories. When an event is underway, strength uses the peak ONI across the observed months and the forecast months together.
 - **Duration:** applies only to events that meet the five-season rule. It is the number of months within the event where ONI is at or above +0.5. Shorter spells are not events and have no duration.
 - **Start month:** the first month of an event that meets the five-season rule.
@@ -42,7 +43,7 @@ All labels are built from the monthly ONI index.
 | Data | Use | Status |
 | --- | --- | --- |
 | NOAA ONI (`oni.ascii.txt`), 1950 to September 2026 | Source of truth for ONI: labels, targets, and lag features | Confirmed. Downloaded. |
-| ENSO monthly indices from Kaggle | Secondary source for RONI, Niño 3.4 anomaly, and SOI. Its ONI column is only compared with NOAA. | Confirmed. ONI compared with NOAA. SOI still to compare with NOAA's `soi.txt` file. |
+| ENSO monthly indices from Kaggle | Secondary source for RONI, Niño 3.4 anomaly, and SOI. Its ONI column is only compared with NOAA. | Confirmed. ONI and SOI compared with NOAA. |
 | ERA5 monthly data, Pacific box, full time range | Extra features and the CNN | Source confirmed. Variables and box to finalize. |
 | TAO buoy data from Kaggle | Optional learning dataset, 1980 to 1998 only | Not yet opened. |
 
@@ -54,6 +55,8 @@ All labels are built from the monthly ONI index.
 **Kaggle ENSO dataset:** El Nino-Southern Oscillation (ENSO) Data. Link: https://www.kaggle.com/datasets/shabanamir/enso-data/data. A secondary source for RONI, Niño 3.4 anomaly, and SOI. Its ONI column is not used for labels. ONI and RONI end in April 2026; Niño 3.4 anomaly and SOI end in May 2026.
 
 **Kaggle vs NOAA ONI comparison:** the months align when each NOAA season is mapped to its centre month (shifting by one month either way fits worse). The values are not identical. The mean absolute difference is 0.07, and 49 months change status (El Niño, neutral, or La Niña) depending on which file is used. The likely cause, for example an older NOAA data version in the Kaggle file, is not confirmed.
+
+**Kaggle vs NOAA SOI comparison:** the Kaggle SOI column matches the ANOMALY block of NOAA's `soi.txt` exactly (all 905 shared months, 1951-01 to 2026-05). It does not match the STANDARDIZED block. NOAA's file runs to October 2026, five months past the Kaggle file. `soi.txt` is fixed-width, its numbers can touch (`-1.7-999.9`), and -999.9 means missing. Details are in `notebooks/01_explore_enso.ipynb`, section 5.
 
 **Columns kept:**
 
@@ -69,7 +72,7 @@ All other columns are ignored for now.
 - **Phase-intensity column:** never use it as a training feature. It is derived from ONI, so it would leak the answer into the model. It cannot check our monthly labels either, because it has one label per 12-month block and a "very strong" class. Our strength scale stays three levels.
 - **Checking our labels:** check that the events 1982 to 83, 1997 to 98, 2015 to 16, and 2023 to 24 are found, and that the event that began in May 2026 is found and labelled ongoing.
 - **Encoding:** the file is UTF-8 and loads with plain `pd.read_csv`. The phase-intensity column names contain a literal "�".
-- **Cross-check:** the ONI column has been compared with NOAA's `oni.ascii.txt` (see above). Compare the SOI column with NOAA's `soi.txt` file.
+- **Cross-check:** the ONI column has been compared with NOAA's `oni.ascii.txt`, and the SOI column with NOAA's `soi.txt` (see above).
 
 **Loader rules (Kaggle file):**
 
@@ -149,5 +152,4 @@ Start and duration are derived from the forecast ONI series using the label rule
 
 ## 11. Open Items
 
-- Confirm the event rule against NOAA.
 - Finalize the ERA5 variables and region box before downloading.

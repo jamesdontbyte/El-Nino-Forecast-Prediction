@@ -8,7 +8,7 @@ Work top to bottom. Tick each box when done. Details are in specs/layer1-forecas
 
 ## 1. Decisions before coding
 - [x] Write the Kaggle ENSO dataset name and link into the specs.
-- [ ] Confirm the event rule (five consecutive overlapping three-month periods) against NOAA.
+- [x] Confirm the event rule (five consecutive overlapping three-month periods) against NOAA.
 - [x] Duration applies only to events that meet the five-season rule. It counts the months within the event where ONI is at or above +0.5.
 - [x] Strength uses the event's peak ONI: weak 0.5 to 0.9, moderate 1.0 to 1.4, strong 1.5 and above (a convention, not official NOAA categories).
 - [x] Split: train 1950 to 2008, validate 2009 to 2016, test 2017 to the latest month.
@@ -30,7 +30,7 @@ Work top to bottom. Tick each box when done. Details are in specs/layer1-forecas
 - [x] load_enso.py: read RONI, Niño 3.4 SST anomaly, and SOI from the Kaggle file, following the Kaggle loader rules in the layer1 spec. Join both on the month, one row per month.
 - [x] Save the cleaned table to data/processed/enso_monthly.csv.
 - [x] Compare the Kaggle ONI column with NOAA's oni.ascii.txt (done by hand; results are in the layer1 spec).
-- [ ] Compare the Kaggle SOI column with NOAA's soi.txt file and note any differences.
+- [x] Compare the Kaggle SOI column with NOAA's soi.txt file and note any differences.
 
 ## 5. Labels
 - [ ] labels.py: status per month (El Niño, neutral, La Niña).
