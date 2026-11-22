@@ -9,5 +9,6 @@ xgboost
 matplotlib
 ruff
 pytest
+httpx
 jupyter
 ipykernel

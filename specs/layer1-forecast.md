@@ -141,6 +141,8 @@ Start and duration are derived from the forecast ONI series using the label rule
 
 - `GET /api/forecast` returns the output described in section 2.
 - It loads a saved model from `backend/app/saved_models/`. It never trains on request.
+- If the saved model or the processed ONI file is missing, it returns 503 with a message to run `python -m app.layer1_forecast.train` first.
+- The model and the ONI file are read on every request, so a retrained model is used without restarting the server.
 - Training runs from a separate script, `train.py`, and saves the best model.
 
 ## 9. Files

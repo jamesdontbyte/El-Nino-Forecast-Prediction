@@ -64,9 +64,9 @@ Work top to bottom. Tick each box when done. Details are in specs/layer1-forecas
 - [x] Score event detection on the test period: events found, start and duration error per lead (ongoing event excluded from duration).
 
 ## 10. API
-- [ ] backend/app/api/forecast.py: GET /api/forecast loads the saved model (never trains) and returns every field in layer1 spec section 2.
-- [ ] Connect the route to the FastAPI app in backend/main.py and check it in the browser.
-- [ ] Go through the "Done When" list in the layer1 spec.
+- [x] backend/app/api/forecast.py: GET /api/forecast loads the saved model (never trains) and returns every field in layer1 spec section 2.
+- [x] Connect the route to the FastAPI app in backend/main.py and check it in the browser.
+- [x] Go through the "Done When" list in the layer1 spec.
 
 ## Later (only after the above works)
 - [ ] Finalize ERA5 variables and box, then download ERA5.
