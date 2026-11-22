@@ -125,6 +125,8 @@ Start and duration are derived from the forecast ONI series using the label rule
 - **Event status:** accuracy and a confusion matrix.
 - **Start and duration:** how many test-period events were detected, and how far off the start month and duration were. The ongoing event is excluded from duration scoring.
 - Compare every model on the same split. Models that predict the ONI value use MAE and RMSE. The status classifier uses accuracy and a confusion matrix.
+- Each model is fitted once per lead time (6 models per algorithm), with fixed settings and no tuning.
+- Two reference rows with no model are always shown: persistence (the forecast for every lead is the newest ONI) for MAE and RMSE, and most-common-class (always the most common training status) for status accuracy.
 - Skill drops with lead time. Report that honestly, and do not hide the longer lead times.
 
 ## 8. API

@@ -45,10 +45,10 @@ Work top to bottom. Tick each box when done. Details are in specs/layer1-forecas
 - [x] Split by date into train, validation, and test. Do not look at test results until step 9.
 
 ## 7. Models (one at a time)
-- [ ] Linear regression baseline: MAE and RMSE per lead time on validation.
-- [ ] Logistic regression: status 1 to 6 months ahead, accuracy and confusion matrix.
-- [ ] Random Forest.
-- [ ] XGBoost.
+- [x] Linear regression baseline: MAE and RMSE per lead time on validation.
+- [x] Logistic regression: status 1 to 6 months ahead, accuracy and confusion matrix.
+- [x] Random Forest.
+- [x] XGBoost.
 
 ## 8. Turn the forecast into the outputs
 - [ ] From the forecast ONI series, work out start month and strength using the label rules.
