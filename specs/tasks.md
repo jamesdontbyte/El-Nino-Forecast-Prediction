@@ -51,11 +51,11 @@ Work top to bottom. Tick each box when done. Details are in specs/layer1-forecas
 - [x] XGBoost.
 
 ## 8. Turn the forecast into the outputs
-- [ ] From the forecast ONI series, work out start month and strength using the label rules.
-- [ ] Confidence range: forecast ONI plus or minus the validation RMSE at each lead time.
-- [ ] Duration range (only when an event is underway, otherwise null): observed months plus forecast months. Low end from the lower band, high end from the upper band.
-- [ ] Open-ended duration: if the upper band is still at +0.5 or above in the last forecast month, set duration_open_ended to true and report "from L months to at least H months".
-- [ ] Strength when an event is underway: peak ONI across the observed and forecast months together.
+- [x] From the forecast ONI series, work out start month and strength using the label rules.
+- [x] Confidence range: forecast ONI plus or minus the validation RMSE at each lead time.
+- [x] Duration range (only when an event is underway, otherwise null): observed months plus forecast months. Low end from the lower band, high end from the upper band.
+- [x] Open-ended duration: if the upper band is still at +0.5 or above in the last forecast month, set duration_open_ended to true and report "from L months to at least H months".
+- [x] Strength when an event is underway: peak ONI across the observed and forecast months together.
 
 ## 9. Compare and save
 - [ ] notebooks/02_model_comparison.ipynb: one table with every model, same split, same metrics.

@@ -20,8 +20,8 @@ Report whether an El Niño is underway. If none, predict whether one is coming, 
 - `event_underway`: true or false
 - `event_status`: El Niño, neutral, or La Niña for each forecast month
 - `start_month`: the predicted first month of El Niño conditions, or none. When an event is underway, this is the observed start month.
-- `duration_months`: only when an event is underway; null when no event is underway. A range (low and high), not a single number. It counts the months already observed plus the forecast months. The low end comes from the lower confidence band and the high end from the upper band. When `duration_open_ended` is true, the high end is a minimum, reported as "from L months to at least H months".
-- `duration_open_ended`: true or false. True when the upper band is still at +0.5 or above in the last forecast month, so the true end of the event is unknown.
+- `duration_months`: only when an event is underway; null when no event is underway. A range (low and high), not a single number. It counts the months already observed plus the forecast months. The low end comes from the lower confidence band and the high end from the upper band. When `duration_open_ended` is true, the high end is a minimum, reported as "from L months to at least H months". If the lower band also stays at +0.5 or above through every forecast month, low and high are equal and it is reported as "at least N months". Returned as low, high, and that text.
+- `duration_open_ended`: true or false. True when the upper band stays at +0.5 or above through every forecast month, so the true end of the event is unknown. Always false when no event is underway.
 - `strength`: weak, moderate, or strong
 - `forecast_series`: the predicted ONI value for each of the next 1 to 6 months, with a confidence range
 - `model_used`: the name of the model that produced the result
@@ -106,7 +106,11 @@ Start and duration are derived from the forecast ONI series using the label rule
 
 **Duration range (only when an event is underway):** count the months already observed, then add the forecast months. The low end uses the lower confidence band, and the high end uses the upper band. When no event is underway, `duration_months` is null.
 
-**Open-ended duration:** if the upper band is still at +0.5 or above in the last forecast month, the true end is unknown. Set `duration_open_ended` to true and report the duration as "from L months to at least H months".
+**Open-ended duration:** if the upper band stays at +0.5 or above through every forecast month, the true end is unknown. Set `duration_open_ended` to true and report the duration as "from L months to at least H months", or "at least N months" when the lower band also stays at +0.5 or above throughout (so L = H). If the upper band dips below +0.5 and later rises again, the high end stops at the first dip and the duration is not open-ended.
+
+**Status, start, and strength come from the ONI forecast:** `event_status`, `start_month`, and `strength` are all derived from the forecast ONI values (the regression model), so they always agree with `forecast_series`. Logistic regression is a comparison model only.
+
+**Predicted events:** when no event is underway, a predicted event must also meet the five-season rule, counting the observed months and the forecast months together. Its start can be an already-observed month. Warming that is too short to meet the rule gives no start month.
 
 ## 6. Train and Test Split
 

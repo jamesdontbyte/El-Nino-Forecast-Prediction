@@ -44,7 +44,7 @@ The user does not pick the forecast date, horizon, or model. The system works th
 The forecaster works in two cases:
 
 - **No event underway:** whether an El Niño is coming, when it starts, and how strong it will be.
-- **Event underway (the case now, since May 2026):** that it is active, its observed start month, and a forecast of how strong it gets and how long it lasts. Duration counts the months already observed plus the forecast months, as a range. The low end comes from the lower confidence band and the high end from the upper band. If the upper band is still at +0.5 or above in the last forecast month, the true end is unknown, so duration is reported as "from L months to at least H months" and the API marks it as open-ended (true or false).
+- **Event underway (the case now, since May 2026):** that it is active, its observed start month, and a forecast of how strong it gets and how long it lasts. Duration counts the months already observed plus the forecast months, as a range. The low end comes from the lower confidence band and the high end from the upper band. If the upper band stays at +0.5 or above through every forecast month, the true end is unknown, so duration is reported as "from L months to at least H months" and the API marks it as open-ended (true or false). If the lower band also stays at +0.5 or above throughout, it is reported as "at least N months".
 
 Duration is only given when an event is underway. When no event is underway, it is empty (null).
 
