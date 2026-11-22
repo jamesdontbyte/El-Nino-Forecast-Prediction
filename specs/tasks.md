@@ -10,7 +10,7 @@ Work top to bottom. Tick each box when done. Details are in specs/layer1-forecas
 - [x] Write the Kaggle ENSO dataset name and link into the specs.
 - [x] Confirm the event rule (five consecutive overlapping three-month periods) against NOAA.
 - [x] Duration applies only to events that meet the five-season rule. It counts the months within the event where ONI is at or above +0.5.
-- [x] Strength uses the event's peak ONI: weak 0.5 to 0.9, moderate 1.0 to 1.4, strong 1.5 and above (a convention, not official NOAA categories).
+- [x] Strength uses the event's peak ONI: weak 0.5 to below 1.0, moderate 1.0 to below 1.5, strong 1.5 and above (a convention, not official NOAA categories).
 - [x] Split: train 1950 to 2008, validate 2009 to 2016, test 2017 to the latest month.
 - [x] Lead times: 1 to 6 months.
 - [x] Metrics: MAE and RMSE for models that predict ONI; accuracy and a confusion matrix for the status classifier.
@@ -33,11 +33,11 @@ Work top to bottom. Tick each box when done. Details are in specs/layer1-forecas
 - [x] Compare the Kaggle SOI column with NOAA's soi.txt file and note any differences.
 
 ## 5. Labels
-- [ ] labels.py: status per month (El Niño, neutral, La Niña).
-- [ ] labels.py: find events with the five-season rule. Give each a start month, duration, peak ONI, and strength.
-- [ ] Check that 1982 to 83, 1997 to 98, 2015 to 16, and 2023 to 24 are found with sensible start, duration, and strength.
-- [ ] Label the event that began in May 2026 as "ongoing". Use its months for ONI and status targets, and exclude it from duration scoring.
-- [ ] First tests: tests for labels.py.
+- [x] labels.py: status per month (El Niño, neutral, La Niña).
+- [x] labels.py: find events with the five-season rule. Give each a start month, duration, peak ONI, and strength.
+- [x] Check that 1982 to 83, 1997 to 98, 2015 to 16, and 2023 to 24 are found with sensible start, duration, and strength.
+- [x] Label the event that began in May 2026 as "ongoing". Use its months for ONI and status targets, and exclude it from duration scoring.
+- [x] First tests: tests for labels.py.
 
 ## 6. Features and split
 - [ ] Build lag features from ONI only (1, 3, 6, and 12 months earlier), using only data available at forecast time.

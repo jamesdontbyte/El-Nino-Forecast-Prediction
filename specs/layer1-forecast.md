@@ -33,7 +33,7 @@ All labels are built from the monthly ONI index.
 - **Event status:** El Niño when ONI is +0.5 or above. La Niña when ONI is -0.5 or below. Neutral otherwise.
 - **Event:** NOAA requires five consecutive overlapping three-month periods at the threshold. Confirmed on NOAA's ONI page.
 - This five-season rule is NOAA's historical ONI convention. NOAA's operational definition now uses RONI.
-- **Strength:** uses the peak ONI of the event. Weak from 0.5 to 0.9, moderate from 1.0 to 1.4, strong from 1.5 and above. These cutoffs are a common convention, not official NOAA categories. When an event is underway, strength uses the peak ONI across the observed months and the forecast months together.
+- **Strength:** uses the peak ONI of the event. Weak from 0.5 to below 1.0, moderate from 1.0 to below 1.5, strong from 1.5 and above. (ONI has two decimals, so a peak of 0.97 is weak and 1.49 is moderate.) These cutoffs are a common convention, not official NOAA categories. When an event is underway, strength uses the peak ONI across the observed months and the forecast months together.
 - **Duration:** applies only to events that meet the five-season rule. It is the number of months within the event where ONI is at or above +0.5. Shorter spells are not events and have no duration.
 - **Start month:** the first month of an event that meets the five-season rule.
 - **Ongoing event:** an event that has not ended by the last month of data is labelled "ongoing". The El Niño that began in May 2026 is ongoing. Its months can be used for ONI and status targets, but it is excluded from duration scoring because its final duration is not known yet.
