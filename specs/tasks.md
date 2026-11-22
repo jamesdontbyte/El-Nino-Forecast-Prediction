@@ -40,9 +40,9 @@ Work top to bottom. Tick each box when done. Details are in specs/layer1-forecas
 - [x] First tests: tests for labels.py.
 
 ## 6. Features and split
-- [ ] Build lag features from ONI only (1, 3, 6, and 12 months earlier), using only data available at forecast time.
-- [ ] Build targets: ONI at each lead time (1 to 6 months).
-- [ ] Split by date into train, validation, and test. Do not look at test results until step 9.
+- [x] Build lag features from ONI only (1, 3, 6, and 12 months earlier), using only data available at forecast time.
+- [x] Build targets: ONI at each lead time (1 to 6 months).
+- [x] Split by date into train, validation, and test. Do not look at test results until step 9.
 
 ## 7. Models (one at a time)
 - [ ] Linear regression baseline: MAE and RMSE per lead time on validation.

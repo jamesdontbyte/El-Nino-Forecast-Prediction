@@ -115,6 +115,8 @@ Start and duration are derived from the forecast ONI series using the label rule
 - The test period includes the 2023 to 2024 event. Keep it untouched until the final comparison.
 - The last months of the test period are an event still in progress (the one that began in May 2026), so scores for that event are rough.
 - **No leakage:** lag features may only use data that would really be available at forecast time. The newest ONI value is about two months old, because each ONI value is a three-month average centred on its month.
+- **Anchor month (B):** each row is anchored on the newest published ONI month. Lead h targets the ONI at B+h. Lag k is the ONI k months before the first forecast month (B+1), so lag 1 is ONI(B). Every feature is at or before B.
+- **Split boundaries:** rows go to a period by their anchor month. Train and validation rows whose targets reach into the next period are dropped (the last 6 of each).
 - There are only about 20 events since 1950. Treat results as rough, and say so in the presentation.
 
 ## 7. Evaluation
