@@ -72,3 +72,4 @@ Work top to bottom. Tick each box when done. Details are in specs/layer1-forecas
 - [ ] Finalize ERA5 variables and box, then download ERA5.
 - [ ] Optional: TAO buoy data.
 - [ ] Optional: LSTM, then CNN on ERA5.
+- [ ] Decide whether SOI comes from NOAA's soi.txt, which reaches October 2026, instead of the Kaggle file, which ends in May 2026. Not needed while the models use ONI only.
