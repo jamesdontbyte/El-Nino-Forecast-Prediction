@@ -54,13 +54,14 @@ Work top to bottom. Tick each box when done. Details are in specs/layer1-forecas
 - [x] From the forecast ONI series, work out start month and strength using the label rules.
 - [x] Confidence range: forecast ONI plus or minus the validation RMSE at each lead time.
 - [x] Duration range (only when an event is underway, otherwise null): observed months plus forecast months. Low end from the lower band, high end from the upper band.
-- [x] Open-ended duration: if the upper band is still at +0.5 or above in the last forecast month, set duration_open_ended to true and report "from L months to at least H months".
+- [x] Open-ended duration: if the upper band stays at +0.5 or above through every forecast month, set duration_open_ended to true and report "from L months to at least H months" ("at least N months" when the lower band also stays warm throughout).
 - [x] Strength when an event is underway: peak ONI across the observed and forecast months together.
 
 ## 9. Compare and save
-- [ ] notebooks/02_model_comparison.ipynb: one table with every model, same split, same metrics.
-- [ ] Run the final comparison on the test period once.
-- [ ] train.py: train, compare, and save the best model to backend/app/saved_models/.
+- [x] notebooks/02_model_comparison.ipynb: one table with every model, same split, same metrics.
+- [x] Run the final comparison on the test period once.
+- [x] train.py: train, compare, and save the best model to backend/app/saved_models/.
+- [x] Score event detection on the test period: events found, start and duration error per lead (ongoing event excluded from duration).
 
 ## 10. API
 - [ ] backend/app/api/forecast.py: GET /api/forecast loads the saved model (never trains) and returns every field in layer1 spec section 2.

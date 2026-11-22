@@ -132,6 +132,10 @@ Start and duration are derived from the forecast ONI series using the label rule
 - Each model is fitted once per lead time (6 models per algorithm), with fixed settings and no tuning.
 - Two reference rows with no model are always shown: persistence (the forecast for every lead is the newest ONI) for MAE and RMSE, and most-common-class (always the most common training status) for status accuracy.
 - Skill drops with lead time. Report that honestly, and do not hide the longer lead times.
+- **Model choice:** the lowest mean validation RMSE across leads 1 to 6, one model for all leads, decided before any test score exists. Result: linear regression (0.488; XGBoost 0.525, Random Forest 0.561, persistence 0.685).
+- **Test scoring:** every model is fitted on 1950 to 2016 and scored once on 2017 onward. Each lead is scored only on rows whose target is observed (116 rows at lead 1 down to 111 at lead 6).
+- **Saved model:** the chosen model is refitted on all rows with known targets (1950 to the newest ONI) and saved by `train.py`. Its confidence band uses the validation RMSE. The test scores describe the 1950 to 2016 version, so they are an estimate for the saved model.
+- **Test results (linear regression):** RMSE 0.107 at lead 1 rising to 0.664 at lead 6 (persistence 0.189 to 0.893). Status accuracy (logistic regression) 0.92 at lead 1 down to 0.51 at lead 6 (most-common-class about 0.43). Event detection: all 4 test events found at lead 1 (mean start error 0.5 months), 3 of 4 at leads 2 to 4, 2 of 4 at leads 5 and 6. Each lead's forecast series keeps its months past the newest observation, so the ongoing 2026 event is scored on real forecasts. Details are in `notebooks/02_model_comparison.ipynb`.
 
 ## 8. API
 

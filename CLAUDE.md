@@ -47,5 +47,6 @@ Details for each layer are in specs/requirements.md.
 ## Checks
 - Back end: run ruff and the tests (pytest) from backend/. pytest exit code 5 means no tests were found yet. It is not a failure. The first tests will be for the labels.
 - Start the server from backend/ and confirm /health still returns ok.
+- Before starting the API, run `python -m app.layer1_forecast.train` from backend/ so the saved model exists (saved_models/ is gitignored).
 - Front end (once it exists): run the type check, the linter, and the build.
 - Report any failing check. Do not hide it.

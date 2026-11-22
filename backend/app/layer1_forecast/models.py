@@ -74,6 +74,7 @@ def regression_scores(name: str, predict, validation: pd.DataFrame) -> pd.DataFr
         rows.append({
             "model": name,
             "lead": lead,
+            "rows": len(target),  # only rows whose target is observed
             "mae": mean_absolute_error(target, predicted),
             "rmse": np.sqrt(mean_squared_error(target, predicted)),
         })
@@ -87,7 +88,12 @@ def status_scores(name: str, predict, validation: pd.DataFrame) -> tuple[pd.Data
         features, target = lead_rows(validation, lead)
         true_status = month_status(target)
         predicted = predict(lead, features)
-        rows.append({"model": name, "lead": lead, "accuracy": accuracy_score(true_status, predicted)})
+        rows.append({
+            "model": name,
+            "lead": lead,
+            "rows": len(target),
+            "accuracy": accuracy_score(true_status, predicted),
+        })
         matrices[lead] = pd.DataFrame(
             confusion_matrix(true_status, predicted, labels=STATUS_ORDER),
             index=[f"true {s}" for s in STATUS_ORDER],
