@@ -1,6 +1,6 @@
 # Layer 2 Spec: Impact and Land View
 
-**Status:** draft. The data, cleaning rules, normal yield, colours and models are decided (evidence in notebooks 03, 04 and 05). Items marked OPEN are not decided yet; they belong to the map output and API steps.
+**Status:** draft. The data, cleaning rules, normal yield, colours and models are decided (evidence in notebooks 03, 04 and 05). The map output is decided. Items marked OPEN are not decided yet; they belong to the API step.
 
 ## 1. Purpose
 
@@ -12,7 +12,7 @@ Yield change is measured against that province's own normal, not against other p
 
 **Input from the user:** a province and a crop. The user does not pick a date, horizon, or model.
 
-**Input from the system:** the Layer 1 forecast. OPEN: how the forecast is turned into Layer 2 inputs.
+**Input from the system:** the Layer 1 forecast. **ONI mix (decided):** a quarter's ONI is the mean of its 3 months, each month observed if available, otherwise the Layer 1 forecast. Last quarter's ONI is built the same way. 2026 Q4: ONI 2.45 (forecast), last quarter 2.14 (Q3 2026, observed). 2027 Q1: ONI 1.77 (forecast), last quarter 2.45 (forecast).
 
 **Crops:**
 
@@ -27,12 +27,19 @@ Yield change is measured against that province's own normal, not against other p
 
 **Land view:**
 
-- A flat 2D province map with a toggle between a normal year and the El Niño prediction.
+- A flat 2D province map with a toggle between four views (below).
 - Colours show dryness: green healthy, yellow stressed, red severe.
 - Provinces are coloured as whole shapes. There is no 25 km grid.
-- The user can also compare a past El Niño year (for example 2015 or 2023).
-- Shapes with no crop data are shown grey.
-- OPEN: what the "normal year" map shows.
+- **Forecast quarters (decided):** the quarters fully covered by observed plus forecast ONI. Now: 2026 Q4 and 2027 Q1 (ONI is observed to September 2026, forecast October 2026 to March 2027). Labels look like "2026 Q4".
+- **Four views (decided):** for each forecast quarter, each view lists all 88 map shapes with `map_psgc`, `province` (the lookup's `crop_name`), `rain_pct` (rounded to 1 decimal) and colour.
+  - `prediction`: rain % predicted by the saved rainfall model (XGBoost) from the quarter's ONI.
+  - `normal`: observed rainfall in the most recent year whose same quarter was neutral (no El Niño or La Niña, by the 2-of-3-months rule, using observed ONI only). Now: 2025 for Q4 and 2026 for Q1. The year is part of the output.
+  - `el_nino_2015_16` and `el_nino_2023_24`: observed rainfall for the same quarter of the year inside each event (Q4: 2015 Q4 and 2023 Q4; Q1: 2016 Q1 and 2024 Q1).
+- **Colours (decided):** PAGASA bands on the rounded value: red 40.0 or less, yellow 80.0 or less, green above. Missing rainfall is grey.
+- **No-crop areas (decided):** the 4 NCR shapes are coloured by rainfall (CHIRPS PH13074), because the map shows dryness, which needs only rainfall. City of Isabela and the Special Geographic Area have no rainfall and are grey.
+- Current output (green / yellow / red / grey of 88 shapes):
+  - 2026 Q4: prediction 1/85/0/2; normal (2025) 86/0/0/2; 2015 Q4 33/53/0/2; 2023 Q4 47/39/0/2.
+  - 2027 Q1: prediction 0/6/80/2; normal (2026) 70/16/0/2; 2016 Q1 9/35/42/2; 2024 Q1 16/62/8/2.
 - **Dryness colours (decided):** based on rainfall percent of normal, using PAGASA's rainfall categories: 40% or less is way below normal, 41-80% is below normal, 81-120% is near normal, above 120% is above normal.
   - Map: red is 40% or less, yellow is 41-80%, green is above 80% (near normal and above normal are both not dry).
   - Yield change is shown as a number, not as a colour.
@@ -85,7 +92,7 @@ The three sources use different keys, so a hand-made lookup table links them. Co
   - Maguindanao 087 covers both Maguindanao del Norte (087) and del Sur (088). There is no CHIRPS row for 088.
   - Davao del Sur 024 includes Davao Occidental (086). There is no CHIRPS row for 086.
   - NCR is one CHIRPS unit (074) but four shapes. NCR has no crop data.
-- Shapes with no crop data are shown grey: the NCR districts, City of Isabela, and Special Geographic Area.
+- Shapes with no crop data: see the no-crop areas rule in section 2.
 - Crop names that differ from shape names: "Cotabato (North Cotabato)" to "Cotabato", "Davao de Oro (Compostela Valley)" to "Davao de Oro", and "Tawi-tawi" to "Tawi-Tawi".
 - Footnote marks (a/, b/, c/, d/) and leading dots must be stripped from crop names.
 
@@ -153,7 +160,11 @@ Decided: the normal yield, the yield change, the minimum data, the El Niño quar
 - No yield skill on the test years: the chosen yield model is level with "always normal".
 - The Palay and Corn totals are sums of their parts, so training on all 6 crop types counts each harvest twice.
 - The Layer 1 forecast ONI error is not carried into Layer 2, so the app's confidence is understated.
-- The app's "this quarter" and "last quarter" ONI may mix observed and forecast months. OPEN for the API step: how that mix is built and which quarter the map shows.
+- The 2027 Q1 prediction is redder than any observed Q1. Observed Q1 after strong El Niños (of 81 provinces): 1983 had 52 red (median 36% of normal), 1992 51 red (37%), 1998 55 red (34%), 2016 40 red (40%). So a very dry Q1 fits history. But the model predicts a typical value with less spread than real provinces. When that typical value is just under 40%, almost every province turns red at once. The red count is likely exaggerated. Read the map as "most provinces near or below the red line".
+- The map colours only the central forecast. The confidence band is not shown.
+- A short cold spell under 5 months counts as neutral, so the "normal" year is by our rule, not NOAA's list.
+- The map output has no shape names for NCR, City of Isabela and the Special Geographic Area (province is empty). The front end reads names from the GeoJSON.
+- Not in the map output step: the API route, geometry, the front end, and yield on the map.
 
 ## 7. Evaluation
 
@@ -192,7 +203,9 @@ Decided: the normal yield, the yield change, the minimum data, the El Niño quar
 Planned.
 
 - `backend/app/layer2/`: `features.py`, `models.py`, `train.py`.
+- `backend/app/layer2/map_output.py`: builds the map output. Run with `python -m app.layer2.map_output`.
 - `backend/tests/test_layer2_models.py`
+- `backend/tests/test_layer2_map.py`
 - `notebooks/05_layer2_models.ipynb`
 
 - `backend/app/data/`: the crop loader, the rainfall loader, and the lookup table.
@@ -209,6 +222,4 @@ Planned.
 
 ## 10. Open Items
 
-- What the "normal year" map shows.
-- How the Layer 1 forecast is turned into Layer 2 inputs.
-- API step: how the app's "this quarter" and "last quarter" ONI are built when they mix observed and forecast months, and which quarter the map shows.
+- API step: the route and its exact output fields (yield is a number for the chosen province; it is not on the map).

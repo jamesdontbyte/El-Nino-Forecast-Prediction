@@ -24,5 +24,5 @@
 
 ## Later
 - [x] Baseline model, then other models, on the same split.
-- [ ] Map output (colours per province).
+- [x] Map output (colours per province).
 - [ ] API route for Layer 2.
