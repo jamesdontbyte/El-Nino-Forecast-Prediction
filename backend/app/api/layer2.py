@@ -40,13 +40,17 @@ def get_map() -> list[dict]:
         raise missing_file(missing) from missing
 
 
-@router.get("/api/impact")
-def get_impact(province: str, crop: str) -> dict:
-    # Check inputs first, so a typo gives a clear 422 instead of an empty result.
+def check_province_and_crop(province: str, crop: str) -> None:
+    """422 naming the bad value. Checked first, so a typo gives a clear error instead of an empty result."""
     if province not in province_names(load_lookup()):
         raise HTTPException(status_code=422, detail=f"Unknown province: {province!r}. See /api/options.")
     if crop not in CROP_TYPES:
         raise HTTPException(status_code=422, detail=f"Unknown crop: {crop!r}. Choose one of {CROP_TYPES}.")
+
+
+@router.get("/api/impact")
+def get_impact(province: str, crop: str) -> dict:
+    check_province_and_crop(province, crop)
     try:
         return load_impact(province, crop)
     except FileNotFoundError as missing:

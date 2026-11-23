@@ -147,22 +147,23 @@ If the shares add up to more than 1, switching takes whoever is left (section 3)
 
 ## 6. Output and API
 
-**Route (proposed):** `GET /api/simulate?province=...&crop=...&irrigation=true|false&switching=true|false&pump_share=0.2&switch_share=0.1&irrigation_gain=3.6` in `backend/app/api/simulation.py`. The router is included in `backend/main.py`.
+**Route (built):** `GET /api/simulate?province=...&crop=...&irrigation=true|false&switching=true|false&pump_share=0.2&switch_share=0.1&irrigation_gain=3.6` in `backend/app/api/simulation.py`. The router is included in `backend/main.py`.
 
 - `pump_share`, `switch_share` and `irrigation_gain` are optional (decided), with defaults 0.2, 0.1 and 3.6. The shares must be between 0 and 1, and the gain between 0 and 10, inclusive.
-- Reads the saved models and data on every request and never trains, like the other routes.
+- `irrigation` and `switching` are optional too and default to false (no policy).
+- Reads the saved models and data on every request and never trains, like the other routes. A request takes about 1.2 s.
 - The seed is fixed, so the same inputs (including the shares and the gain) always give the same output.
 - Errors:
-  - 422 for an unknown province or crop (same as `/api/impact`).
+  - 422 for an unknown province or crop (same as `/api/impact`, shared `check_province_and_crop` in `backend/app/api/layer2.py`).
   - 422 for a share below 0 or above 1 (decided), or a gain below 0 or above 10.
   - 503 for a missing model or data file. The route reuses `missing_file` from `backend/app/api/layer2.py`.
 
-**Response (proposed):**
+**Response (built):**
 
 - `province`, `crop`, `policies` (the two toggles), `farmers`, `seed`, `irrigated_share`, `pump_share`, `switch_share`, `irrigation_gain`.
 - `quarters`: one entry per forecast quarter, with:
   - `quarter`, `rain_pct`, `colour`, `enough_data`.
-  - `without` and `with`, each with: the average yield change % (every farmer counts the same), and one row per crop group (irrigated palay, rainfed palay, corn) with the number of farmers, the yield change % and the t/ha.
+  - `without` and `with`, each with: the average yield change % (every farmer counts the same), and one row per crop group (Irrigated Palay, Rainfed Palay, Rainfed Palay with pump, Corn (switched), or the corn type) with the number of farmers, the yield change % and the t/ha. Both are null when the chosen crop has no data in the quarter.
   - In `with`: `pumps_given` and `switched` counts.
   - `notes`: policies that did not apply and why.
 - `assumptions`: the list from section 5, each with `name`, `value` (the value used) and `note`. The irrigation gain's note is "estimated from two strong El Niños, not statistically firm" (decided).
@@ -172,7 +173,7 @@ Palay and corn t/ha are never averaged together. Only the yield change % is aver
 
 ## 7. Files
 
-Planned.
+Built.
 
 - `backend/app/simulation/__init__.py`, `backend/app/simulation/simulate.py`: farmers, local government, the crop gap table, and the run.
 - `backend/app/api/simulation.py`: the route.

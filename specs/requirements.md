@@ -82,6 +82,7 @@ The API also returns whether an event is underway (true or false).
 - Policies: irrigation support and crop switching only. Both apply in 2027 Q1 only, because the 2026 Q4 crop is already planted. When both are on, irrigation goes first.
 - Units: yield only (% of normal and t/ha). No pesos.
 - About 100 farmer agents with a fixed random seed, so the same inputs give the same result.
+- API route: `GET /api/simulate`.
 - Details are in `specs/layer3-simulation.md`.
 
 ## 6. Datasets and Algorithms

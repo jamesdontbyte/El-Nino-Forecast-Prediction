@@ -26,10 +26,10 @@ Work top to bottom. Tick each box when done. Details are in specs/layer3-simulat
 - [x] backend/tests/test_simulation.py (18 tests): rule tests with hand-made inputs, including: same inputs twice give identical output, changing a share or the irrigation gain changes the result, and the gain changes nothing in yellow and green quarters.
 
 ## 4. API
-- [ ] backend/app/api/simulation.py: GET /api/simulate with optional pump_share and switch_share (0 to 1) and irrigation_gain (0 to 10), else 422, included in backend/main.py.
-- [ ] backend/tests/test_api_simulation.py, including 422 for out-of-range values and the irrigation gain note in the output.
+- [x] backend/app/api/simulation.py: GET /api/simulate with optional pump_share and switch_share (0 to 1) and irrigation_gain (0 to 10), else 422, included in backend/main.py.
+- [x] backend/tests/test_api_simulation.py (11 tests), including 422 for out-of-range values and the irrigation gain note in the output.
 
 ## 5. Checks
-- [ ] ruff and pytest from backend/.
-- [ ] Start the server, /health returns ok.
-- [ ] /api/simulate for Antique Palay (main demo), Agusan del Sur Palay, and Batanes Irrigated Palay (no-data case).
+- [x] ruff and pytest from backend/ (106 passed).
+- [x] Start the server, /health returns ok.
+- [x] /api/simulate for Antique Palay (main demo), Agusan del Sur Palay, and Batanes Irrigated Palay (no-data case).
