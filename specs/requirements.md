@@ -122,4 +122,4 @@ The buoy data ends in 1998, so it is useful for learning but does not count towa
 - Confirm the final ERA5 variables and region box.
 - Decide whether to add the Sentinel upgrade for the land view.
 - Finalize the list of policy choices for the simulation.
-- Layer 2 (details in `specs/layer2-impact.md`): still open: the API route and its output fields. Decided: what the "normal year" map shows, how the Layer 1 forecast becomes Layer 2 inputs (observed ONI months where available, Layer 1 forecast otherwise), the lag (the yield model uses this and last quarter's inputs) and the algorithms (XGBoost for rainfall, the departure line for yield).
+- Layer 2 (details in `specs/layer2-impact.md`): no open items left. Decided: what the "normal year" map shows, how the Layer 1 forecast becomes Layer 2 inputs (observed ONI months where available, Layer 1 forecast otherwise), the lag (the yield model uses this and last quarter's inputs), the algorithms (XGBoost for rainfall, the departure line for yield) and the API routes (`GET /api/options`, `GET /api/map`, `GET /api/impact`).

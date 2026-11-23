@@ -176,7 +176,8 @@ def map_views(enso: pd.DataFrame, forecast_series: list[dict], rain: pd.DataFram
 def load_map_views() -> list[dict]:
     """Map views from the saved models and the processed data."""
     enso = load_enso_monthly()
-    forecast = forecast_from_bundle(layer1_train.load_model(), enso)
+    # Pass the folder explicitly: load_model's default is fixed when it is defined, so tests could not redirect it.
+    forecast = forecast_from_bundle(layer1_train.load_model(layer1_train.SAVED_MODELS_DIR), enso)
     rain_model = joblib.load(layer2_train.SAVED_MODELS_DIR / layer2_train.RAIN_MODEL_FILE)["model"]
     return map_views(enso, forecast["forecast_series"], load_rainfall(), load_lookup(), rain_model)
 

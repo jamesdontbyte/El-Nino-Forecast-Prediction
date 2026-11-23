@@ -1,6 +1,6 @@
 # Layer 2 Spec: Impact and Land View
 
-**Status:** draft. The data, cleaning rules, normal yield, colours and models are decided (evidence in notebooks 03, 04 and 05). The map output is decided. Items marked OPEN are not decided yet; they belong to the API step.
+**Status:** draft. The data, cleaning rules, normal yield, colours and models are decided (evidence in notebooks 03, 04 and 05). The map output and the API routes are decided. Nothing is open.
 
 ## 1. Purpose
 
@@ -19,11 +19,28 @@ Yield change is measured against that province's own normal, not against other p
 - Palay (rice): irrigated, rainfed, and total.
 - Corn: white, yellow, and total.
 
-**Outputs (exact fields to be decided):**
+**Outputs (decided):** three routes in `backend/app/api/layer2.py`. They read the saved models and data on every request (no cache) and never train, like `GET /api/forecast`. Map views take about 0.5 s and crop data about 0.7 s.
 
-- Rainfall change for the province.
-- Crop yield change for the province and crop, against the province's own normal.
-- Map colours for the land view.
+- `GET /api/options`: `provinces` and `crops`.
+  - `provinces`: 80 crop province names from `province_lookup.csv` (merged provinces appear once). NCR, City of Isabela and the Special Geographic Area are not included because they have no crop data.
+  - `crops`: Irrigated Palay, Rainfed Palay, Palay, White Corn, Yellow Corn, Corn.
+- `GET /api/map`: the map views from `map_output`: 2 forecast quarters x 4 views x 88 shapes. Each shape has `map_psgc`, `province`, `rain_pct` and `colour`.
+- `GET /api/impact?province=...&crop=...`: the result for the chosen province and crop.
+  - `province`, `crop`.
+  - `models_used`: rain is xgboost, yield is departure_line.
+  - `quarters`: one entry per forecast quarter, with `quarter` (for example "2026 Q4"), `oni`, `oni_prev`, `rain_pct` (predicted, 1 decimal), `colour`, `enough_data`, `yield_change_pct`, `normal_yield_t_per_ha` and `predicted_yield_t_per_ha`.
+  - The three yield fields are null when `enough_data` is false. That means one of the 10 previous years has no yield, or the normal is not above 0. Rain and ONI are still returned.
+- **Last quarter's rain (decided):** the observed rain % if that quarter has rainfall data, otherwise the predicted value of the quarter before. Today 2026 Q4 uses observed 2026 Q3, and 2027 Q1 uses predicted 2026 Q4. The unrounded rain % goes into the yield model. Rounding is only for display.
+- **Predicted yield (decided):** predicted yield (t/ha) = normal x (1 + yield change / 100). The yield change is the yield model's prediction clipped to -100 .. +100, as in training.
+- **Errors (decided):**
+  - Unknown province or crop: 422, naming the bad value.
+  - Missing saved model: 503, naming both train commands (`python -m app.layer1_forecast.train` and `python -m app.layer2.train`).
+  - Missing data file: 503, saying which data file is missing.
+- **Example, Nueva Ecija Palay:**
+  - 2026 Q4: ONI 2.45 / 2.14, rain 65.7% (yellow), yield change -4.5%, normal 5.95 t/ha, predicted 5.68.
+  - 2027 Q1: ONI 1.77 / 2.45, rain 38.3% (red), yield change -6.0%, normal 6.03, predicted 5.67.
+  - Batanes Irrigated Palay: `enough_data` is false in both quarters (rain 87.1% green, 72.0% yellow).
+- **Check:** all 80 provinces x 6 crops run without errors. Share with enough data: 92.5% for 2026 Q4 and 88.8% for 2027 Q1.
 
 **Land view:**
 
@@ -115,8 +132,7 @@ Decided by the user.
 
 ## 6. Models
 
-Decided: the normal yield, the yield change, the minimum data, the El Niño quarter rule, and the model choice (rainfall: XGBoost; yield: departure line). Only the API questions in section 10 stay open.
-
+Decided: the normal yield, the yield change, the minimum data, the El Niño quarter rule, and the model choice (rainfall: XGBoost; yield: departure line).
 - Start with a simple baseline. Other models must beat it.
 - **Step 1, rainfall (decided):** predicts rainfall percent of normal per province and quarter.
   - Inputs: ONI this quarter and last quarter (quarterly ONI = mean of 3 months), quarter, province.
@@ -164,7 +180,8 @@ Decided: the normal yield, the yield change, the minimum data, the El Niño quar
 - The map colours only the central forecast. The confidence band is not shown.
 - A short cold spell under 5 months counts as neutral, so the "normal" year is by our rule, not NOAA's list.
 - The map output has no shape names for NCR, City of Isabela and the Special Geographic Area (province is empty). The front end reads names from the GeoJSON.
-- Not in the map output step: the API route, geometry, the front end, and yield on the map.
+- The predicted yield change is almost the same for every province and crop (2026 Q4: -4.4% to -5.0%; 2027 Q1: -5.9% to -6.6%). The departure line has no province or crop inputs and its rain weights are tiny, so it mostly follows ONI. Provinces differ in their normal and predicted yield in t/ha, not in the percent change.
+- Not in the map output: geometry, the front end, and yield on the map.
 
 ## 7. Evaluation
 
@@ -204,8 +221,11 @@ Planned.
 
 - `backend/app/layer2/`: `features.py`, `models.py`, `train.py`.
 - `backend/app/layer2/map_output.py`: builds the map output. Run with `python -m app.layer2.map_output`.
+- `backend/app/layer2/impact.py`: builds the result for one province and crop.
+- `backend/app/api/layer2.py`: the three routes (`/api/options`, `/api/map`, `/api/impact`). The router is included in `backend/main.py`.
 - `backend/tests/test_layer2_models.py`
 - `backend/tests/test_layer2_map.py`
+- `backend/tests/test_api_layer2.py`
 - `notebooks/05_layer2_models.ipynb`
 
 - `backend/app/data/`: the crop loader, the rainfall loader, and the lookup table.
@@ -218,8 +238,8 @@ Planned.
 - The crop and rainfall loaders follow the cleaning rules, with tests.
 - A baseline and at least one other model are compared on the same split and metrics.
 - The chosen province and crop return a rainfall change, a yield change, and map colours.
-- The OPEN items above are decided and written down.
+- All decisions are written down. Nothing is open.
 
 ## 10. Open Items
 
-- API step: the route and its exact output fields (yield is a number for the chosen province; it is not on the map).
+None for Layer 2.
