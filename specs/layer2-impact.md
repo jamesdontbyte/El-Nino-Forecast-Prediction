@@ -1,6 +1,6 @@
 # Layer 2 Spec: Impact and Land View
 
-**Status:** draft. Items marked OPEN are not decided yet. Decide them after looking at the data in `notebooks/03_explore_layer2.ipynb`.
+**Status:** draft. The data, cleaning rules, normal yield, colours and models are decided (evidence in notebooks 03, 04 and 05). Items marked OPEN are not decided yet; they belong to the map output and API steps.
 
 ## 1. Purpose
 
@@ -108,10 +108,23 @@ Decided by the user.
 
 ## 6. Models
 
-Decided: the normal yield, the yield change, the minimum data, and the El Niño quarter rule (marked "decided" below). Still OPEN: the model, the final algorithms, and whether yield change is measured in the same quarter or a later one (lag).
+Decided: the normal yield, the yield change, the minimum data, the El Niño quarter rule, and the model choice (rainfall: XGBoost; yield: departure line). Only the API questions in section 10 stay open.
 
-- The plan in `specs/requirements.md` stays: Ridge regression, Random Forest, and K-Means (to group provinces).
-- Start with a linear baseline. Other models must beat it.
+- Start with a simple baseline. Other models must beat it.
+- **Step 1, rainfall (decided):** predicts rainfall percent of normal per province and quarter.
+  - Inputs: ONI this quarter and last quarter (quarterly ONI = mean of 3 months), quarter, province.
+  - Training 1981-2008 (9,072 rows), validation 2009-2016 (2,592), test 2017-2026 (3,159).
+  - Chosen: XGBoost, because it has the lowest validation RMSE of the four models (scores in section 7).
+  - In El Niño quarters actual rainfall is about 74% of normal and predicted 70-72% (notebook 05).
+- **Step 2, yield (decided):** predicts yield change % against the 10-year-line normal, clipped to +-100%.
+  - Inputs: rain % this and last quarter, ONI this and last quarter. The pooled models also get crop type, quarter and province.
+  - Training rows 1997-2008 (16,073). The first scorable year is 1997 because the normal needs 10 earlier years. Validation has 12,855 rows and test 16,434. It is trained on all 6 crop types.
+  - Chosen: the departure line. It is a straight line through departures from normal (rain % - 100, and ONI) with no intercept, so a normal quarter always predicts 0%.
+  - Why it was added: in the first comparison, linear regression, Random Forest and XGBoost all lost to the "always 0%" reference. They learned a fixed level of about +4% from 1997-2008, because yields sat above their 10-year-line normal then.
+  - Rejected: the median past El Niño yield change per cell (no ML). Validation RMSE 19.35. Many cells had 0 or 1 training El Niño quarters.
+  - El Niño effect: about 5% lower yield per +1 rise in last quarter's ONI (coefficient -5.2 on the validation fit). Rain barely matters: about +0.3% per 10 points below normal, which is the wrong direction for drought. The effect is real but small.
+  - Lag (decided): validation RMSE of the departure line is 16.98 with this and last quarter, and 17.12 with this quarter only. Last quarter helps a little, so both are kept.
+- The saved models are refitted on all rows (same as Layer 1). Test scores belong to the models fitted on rows up to 2016. Files: `backend/app/saved_models/layer2_rain.joblib`, `layer2_yield.joblib`, `layer2_models.json` (gitignored), written by `python -m app.layer2.train`.
 - **Rainfall rule (decided):** for each province and calendar quarter, rainfall percent of normal = total rainfall in the quarter (sum of `rfh`) divided by its normal (sum of `rfh_avg`), times 100. This was chosen over averaging the ten-day `rfq` values because it does not soften dry quarters (Nueva Ecija 2015 Quarter 2: 57% with this rule, 70% with the average).
 - **Normal yield (decided):** the normal follows the trend, because yield rises strongly over 1987 to 2026. For each province, crop, quarter and year, fit a straight line (yield = a + b x year) on the 10 years before that year, then extend it one year.
   - It uses only past years, so it does not leak future data, and the normal always uses the latest years.
@@ -137,6 +150,10 @@ Decided: the normal yield, the yield change, the minimum data, and the El Niño 
 - Some cells (province, crop, quarter) are thin. 52 cells have no yield before 2009 (mostly Batanes and Dinagat Islands). 171 cells have a median area under 100 ha, so their yields are noisy. No area floor was set.
 - Under the minimum data rule, 1,712 of 1,920 cells (province, crop, quarter) are usable now, meaning all of 2016-2025 have a yield (Q1 418, Q2 414, Q3 436, Q4 444). In the test years 2017-2026, 16,434 of 17,626 cell-years with a yield (93.2%) can be scored. The others show "not enough data" (notebook 04, section 6).
 - CHIRPS normals (`rfh_avg`) are fixed per ten-day period and may include test years. This is a small leak in rainfall percent of normal that we cannot change.
+- No yield skill on the test years: the chosen yield model is level with "always normal".
+- The Palay and Corn totals are sums of their parts, so training on all 6 crop types counts each harvest twice.
+- The Layer 1 forecast ONI error is not carried into Layer 2, so the app's confidence is understated.
+- The app's "this quarter" and "last quarter" ONI may mix observed and forecast months. OPEN for the API step: how that mix is built and which quarter the map shows.
 
 ## 7. Evaluation
 
@@ -147,9 +164,36 @@ Decided: the normal yield, the yield change, the minimum data, and the El Niño 
 - Split by date, never randomly.
 - Compare every model on the same split.
 
+**Step 1, rainfall** (percent of normal; the reference always predicts 100%):
+
+| Model | Val MAE | Val RMSE | Test MAE | Test RMSE |
+| --- | --- | --- | --- | --- |
+| Reference (always 100%) | 30.7 | 41.5 | 27.6 | 36.1 |
+| Province line (rain % = a + b x ONI, one line per province and quarter) | 26.0 | 36.5 | 21.9 | 30.5 |
+| Random Forest | 25.5 | 34.9 | 25.9 | 35.3 |
+| XGBoost (chosen) | 24.0 | 33.9 | 23.1 | 31.8 |
+
+**Step 2, yield** (yield change %; the reference always predicts 0%):
+
+| Model | Val MAE | Val RMSE | Test MAE | Test RMSE |
+| --- | --- | --- | --- | --- |
+| Reference (always 0%) | 11.75 | 17.08 | 10.79 | 16.77 |
+| Linear regression | 14.43 | 19.48 | 11.64 | 17.16 |
+| Random Forest | 15.01 | 20.68 | 12.24 | 17.80 |
+| XGBoost | 14.38 | 19.34 | 11.83 | 17.27 |
+| Departure line (chosen) | 11.77 | 16.98 | 10.85 | 16.78 |
+
+- Fed step 1's predicted rainfall, as the app does, the departure line scores validation RMSE 17.02 and test RMSE 16.73.
+- The departure line beats the reference on validation (16.98 vs 17.08) but is level with it on test (16.78 vs 16.77).
+- test_note: on test, the province line did slightly better than XGBoost for rainfall (30.5 vs 31.8). The choice is not changed after seeing test scores, because the model is chosen by validation RMSE.
+
 ## 8. Files
 
 Planned.
+
+- `backend/app/layer2/`: `features.py`, `models.py`, `train.py`.
+- `backend/tests/test_layer2_models.py`
+- `notebooks/05_layer2_models.ipynb`
 
 - `backend/app/data/`: the crop loader, the rainfall loader, and the lookup table.
 - `notebooks/03_explore_layer2.ipynb`: counts usable data per province and crop, and looks at rainfall.
@@ -167,5 +211,4 @@ Planned.
 
 - What the "normal year" map shows.
 - How the Layer 1 forecast is turned into Layer 2 inputs.
-- Same quarter or lagged: drought in one quarter may show up in the next quarter's harvest. Decide at the model step.
-- The final algorithms.
+- API step: how the app's "this quarter" and "last quarter" ONI are built when they mix observed and forecast months, and which quarter the map shows.

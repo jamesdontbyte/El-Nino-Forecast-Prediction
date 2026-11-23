@@ -23,6 +23,6 @@
 - [x] Tests for the cleaning rules.
 
 ## Later
-- [ ] Baseline model, then other models, on the same split.
+- [x] Baseline model, then other models, on the same split.
 - [ ] Map output (colours per province).
 - [ ] API route for Layer 2.
