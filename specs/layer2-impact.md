@@ -33,7 +33,12 @@ Yield change is measured against that province's own normal, not against other p
 - The user can also compare a past El Niño year (for example 2015 or 2023).
 - Shapes with no crop data are shown grey.
 - OPEN: what the "normal year" map shows.
-- OPEN: the dryness colour thresholds.
+- **Dryness colours (decided):** based on rainfall percent of normal, using PAGASA's rainfall categories: 40% or less is way below normal, 41-80% is below normal, 81-120% is near normal, above 120% is above normal.
+  - Map: red is 40% or less, yellow is 41-80%, green is above 80% (near normal and above normal are both not dry).
+  - Yield change is shown as a number, not as a colour.
+  - Source: PAGASA Dry Spell/Drought Assessment, 31 Dec 2023, https://pubfiles.pagasa.dost.gov.ph/pagasaweb/files/climate/dryspelldrought/DrySpell-Drought-assessment_outlook_31Dec2023.pdf. The same bands are on https://bagong.pagasa.dost.gov.ph/climate/climate-prediction/seasonal-forecast.
+  - PAGASA's 2023 climatological publication writes "below 40%" instead of "40% or less". This only matters at exactly 40%.
+  - Why rainfall: in notebook 04, El Niño quarters have median rainfall 72% of normal against 99% in neutral quarters, while same-quarter yield change differs by only 1 to 3 points. In the 2015-16 El Niño quarters, 361 of 567 province-quarters are yellow or red under these bands.
 
 ## 3. Data
 
@@ -103,15 +108,39 @@ Decided by the user.
 
 ## 6. Models
 
-Plan only. All of this is OPEN until tested.
+Decided: the normal yield, the yield change, the minimum data, and the El Niño quarter rule (marked "decided" below). Still OPEN: the model, the final algorithms, and whether yield change is measured in the same quarter or a later one (lag).
 
 - The plan in `specs/requirements.md` stays: Ridge regression, Random Forest, and K-Means (to group provinces).
 - Start with a linear baseline. Other models must beat it.
 - **Rainfall rule (decided):** for each province and calendar quarter, rainfall percent of normal = total rainfall in the quarter (sum of `rfh`) divided by its normal (sum of `rfh_avg`), times 100. This was chosen over averaging the ten-day `rfq` values because it does not soften dry quarters (Nueva Ecija 2015 Quarter 2: 57% with this rule, 70% with the average).
-- **Normal (decided):** the normal yield follows the long-term trend, because yield rises strongly over 1987 to 2026. OPEN: the exact trend method.
-- **Minimum data (decided):** 10 years per province, crop and quarter, because the normal is built per quarter. The app shows a prediction only for quarters that pass, and says "not enough data" for the others. At 10 years, 1,839 of 1,920 province, crop and quarter cells qualify (notebook 03).
+- **Normal yield (decided):** the normal follows the trend, because yield rises strongly over 1987 to 2026. For each province, crop, quarter and year, fit a straight line (yield = a + b x year) on the 10 years before that year, then extend it one year.
+  - It uses only past years, so it does not leak future data, and the normal always uses the latest years.
+  - Why: yield growth seems to slow after about 2010, so a long line keeps expecting the old fast growth. Median yield change in neutral quarters, all three fits scored on the same 45,099 cell-years (notebook 04, section 6; train is 1997-2008):
+
+    | Normal | Train | Validate | Test | Spread (IQR) validate / test |
+    | --- | --- | --- | --- | --- |
+    | Line fitted once on 1987-2008 | -0.9% (fitted on these years) | +0.8% | -6.9% | 27.1 / 35.9 |
+    | Line through all past years | +5.5% | +0.7% | -4.1% | 17.8 / 16.7 |
+    | Line through the last 10 years | +3.8% | -1.1% | 0.0% | 14.6 / 13.8 |
+
+    - The last-10-years line has no drift in the test years and the smallest spread. Its train median is +3.8% because yields were still speeding up in 1997-2008.
+- **Yield change (decided):** (actual - normal) / normal x 100, only where the normal is above 0. Summaries must use medians and percentiles, not means: a tiny positive normal gives huge percents (up to about +450,000% in notebook 04).
+- **Minimum data (decided):** the 10 years before the year being scored must all have a yield, because the normal is built per quarter. Otherwise the app says "not enough data" for that quarter. This replaces the earlier rule of 10 years per province, crop and quarter.
+- **El Niño quarter rule (decided):** a quarter counts as El Niño when at least 2 of its 3 months fall inside an El Niño event from the Layer 1 labels (`find_events` in `backend/app/layer1_forecast/labels.py`, five-season rule).
+  - For the ongoing event, the end is the last ONI month. Single warm months that never become an event do not count.
+  - La Niña quarters use the same rule.
+  - Quarters that are neither are neutral. Quarters that touch an event with only one month are "mixed" and left out of comparisons.
+  - 1987 to 2026: 41 El Niño, 42 La Niña, 64 neutral, 13 mixed.
+
+**Limitations:**
+
+- Some cells (province, crop, quarter) are thin. 52 cells have no yield before 2009 (mostly Batanes and Dinagat Islands). 171 cells have a median area under 100 ha, so their yields are noisy. No area floor was set.
+- Under the minimum data rule, 1,712 of 1,920 cells (province, crop, quarter) are usable now, meaning all of 2016-2025 have a yield (Q1 418, Q2 414, Q3 436, Q4 444). In the test years 2017-2026, 16,434 of 17,626 cell-years with a yield (93.2%) can be scored. The others show "not enough data" (notebook 04, section 6).
+- CHIRPS normals (`rfh_avg`) are fixed per ten-day period and may include test years. This is a small leak in rainfall percent of normal that we cannot change.
 
 ## 7. Evaluation
+
+**Train, validation and test split (decided):** train 1987-2008, validate 2009-2016, test 2017-2026. These are the same boundaries as Layer 1. Split by date, never randomly.
 
 - Models that predict a number (rainfall change, yield change) use MAE and RMSE.
 - Always include a simple linear baseline to beat.
@@ -124,6 +153,7 @@ Planned.
 
 - `backend/app/data/`: the crop loader, the rainfall loader, and the lookup table.
 - `notebooks/03_explore_layer2.ipynb`: counts usable data per province and crop, and looks at rainfall.
+- `notebooks/04_normal_and_colours.ipynb`: compares trend fits for the normal yield and the colour options.
 
 ## 9. Done When
 
@@ -135,8 +165,7 @@ Planned.
 
 ## 10. Open Items
 
-- The dryness colour thresholds.
-- The exact trend method for the normal yield.
 - What the "normal year" map shows.
 - How the Layer 1 forecast is turned into Layer 2 inputs.
+- Same quarter or lagged: drought in one quarter may show up in the next quarter's harvest. Decide at the model step.
 - The final algorithms.

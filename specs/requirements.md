@@ -71,6 +71,7 @@ The API also returns whether an event is underway (true or false).
 - Colors show predicted dryness or stress: green healthy, yellow stressed, red severe.
 - The user can also compare a past El Niño year (for example 2015 or 2023) against the prediction.
 - Build order: first a rainfall-based dryness map with each province coloured as a whole shape, using CHIRPS rainfall. Optionally upgrade later to Sentinel vegetation data (NDVI). The interface stays the same either way.
+- Colour bands use PAGASA rainfall categories (rainfall percent of normal): red 40% or less, yellow 41-80%, green above 80%.
 
 ### Layer 3: Simulation outcome
 
@@ -121,4 +122,4 @@ The buoy data ends in 1998, so it is useful for learning but does not count towa
 - Confirm the final ERA5 variables and region box.
 - Decide whether to add the Sentinel upgrade for the land view.
 - Finalize the list of policy choices for the simulation.
-- Layer 2 (details in `specs/layer2-impact.md`): the dryness colour thresholds, the exact trend method for the normal yield, what the "normal year" map shows, how the Layer 1 forecast becomes Layer 2 inputs, and the final algorithms.
+- Layer 2 (details in `specs/layer2-impact.md`): what the "normal year" map shows, how the Layer 1 forecast becomes Layer 2 inputs, whether yield change is measured in the same quarter or a later one (lag), and the final algorithms.
