@@ -18,6 +18,7 @@ Required output: a functional application, source code, and a presentation.
 - Start with simple ML, get the whole app working, then add deep learning if time allows.
 - Keep it simple. Do not add features that were not asked for.
 - Never commit data files. The data folder is gitignored.
+- The hand-made province lookup table in backend/app/data/ is reference data written by hand. It is committed.
 - The plan is a working draft. Algorithms and datasets may change after testing. Compare models on the same metrics: MAE and RMSE for models that predict a number, accuracy and a confusion matrix for classifiers.
 
 ## What the user inputs
