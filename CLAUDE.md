@@ -9,8 +9,8 @@ Required output: a functional application, source code, and a presentation.
 
 ## Stack
 - Back end: Python with FastAPI
-- Front end: React, TypeScript, Tailwind CSS
-- Map: Leaflet or MapLibre
+- Front end: React, TypeScript, Tailwind CSS, built with Vite (plan in specs/frontend.md)
+- Map: Leaflet (react-leaflet) with OpenStreetMap tiles
 - ML: pandas, xarray, scikit-learn, XGBoost; TensorFlow or PyTorch only if the LSTM or CNN is added
 
 ## Rules
