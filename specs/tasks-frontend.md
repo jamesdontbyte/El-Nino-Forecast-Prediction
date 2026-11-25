@@ -51,6 +51,6 @@ Work top to bottom. Tick each box when done. Details are in specs/frontend.md.
 - [x] Bottom: the `assumptions` list and the `disclaimer`.
 
 ## 7. Checks
-- [ ] Front end from frontend/: `npx tsc -b`, `npm run lint`, `npm run build`.
-- [ ] Back end: ruff and pytest from backend/.
-- [ ] Start the server, /health returns ok, and click through all 3 tabs in the dev server.
+- [x] Front end from frontend/: `npx tsc -b`, `npm run lint`, `npm run build`.
+- [x] Back end: ruff and pytest from backend/.
+- [x] Start the server, /health returns ok, and click through all 3 tabs in the dev server.
