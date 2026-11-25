@@ -19,12 +19,16 @@ Yield change is measured against that province's own normal, not against other p
 - Palay (rice): irrigated, rainfed, and total.
 - Corn: white, yellow, and total.
 
-**Outputs (decided):** three routes in `backend/app/api/layer2.py`. They read the saved models and data on every request (no cache) and never train, like `GET /api/forecast`. Map views take about 0.5 s and crop data about 0.7 s.
+**Outputs (decided):** four routes in `backend/app/api/layer2.py`. The first three read the saved models and data on every request (no cache) and never train, like `GET /api/forecast`. Map views take about 0.5 s and crop data about 0.7 s.
 
 - `GET /api/options`: `provinces` and `crops`.
   - `provinces`: 80 crop province names from `province_lookup.csv` (merged provinces appear once). NCR, City of Isabela and the Special Geographic Area are not included because they have no crop data.
   - `crops`: Irrigated Palay, Rainfed Palay, Palay, White Corn, Yellow Corn, Corn.
 - `GET /api/map`: the map views from `map_output`: 2 forecast quarters x 4 views x 88 shapes. Each shape has `map_psgc`, `province`, `rain_pct` and `colour`.
+- `GET /api/shapes`: the 88 map shapes as one GeoJSON FeatureCollection, for the front-end map (`backend/app/layer2/shapes.py`).
+  - Built from the 18 files in `data/raw/philippines/regions/medres/` on the first request, then kept in memory.
+  - Each feature keeps only `map_psgc` (`adm2_psgc` padded to 10 digits, matching `/api/map`) and `name` (`adm2_en`).
+  - Coordinates are rounded to 3 decimals (about 110 m). About 2.3 MB, or about 460 KB gzipped (`GZipMiddleware` in `backend/main.py`).
 - `GET /api/impact?province=...&crop=...`: the result for the chosen province and crop.
   - `province`, `crop`.
   - `models_used`: rain is xgboost, yield is departure_line.

@@ -5,7 +5,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.layer1_forecast import train as layer1_train
+from app.layer2 import shapes
 from app.layer2 import train as layer2_train
+from app.layer2.features import load_lookup
 from app.layer2.impact import CROP_TYPES, last_quarter_rain
 from main import app
 
@@ -88,3 +90,28 @@ def test_thin_cell_has_no_yield(real_files):
         assert q["enough_data"] is False and q["yield_change_pct"] is None
         assert q["normal_yield_t_per_ha"] is None and q["predicted_yield_t_per_ha"] is None
         assert q["rain_pct"] is not None  # rainfall is still shown
+
+
+def test_shapes_route_has_88_shapes_matching_the_map_codes():
+    if not shapes.SHAPES_DIR.exists():
+        pytest.skip("shape files are missing (data is gitignored)")
+    response = client.get("/api/shapes", headers={"Accept-Encoding": "gzip"})
+    assert response.status_code == 200
+    assert response.headers["content-encoding"] == "gzip"
+    features = response.json()["features"]
+    codes = [feature["properties"]["map_psgc"] for feature in features]
+    assert len(features) == 88 and all(len(code) == 10 for code in codes)
+    # /api/map takes its codes from the lookup, so matching the lookup means matching the map.
+    assert set(codes) == set(load_lookup()["map_psgc"])
+    assert all(feature["properties"]["name"] for feature in features)
+
+
+def test_shape_coordinates_are_rounded_to_3_decimals():
+    assert shapes.round_coordinates([[[120.571822, 17.786033], [1, 2.00049]]]) == [[[120.572, 17.786], [1, 2.0]]]
+
+
+def test_missing_shape_files_give_503(monkeypatch, tmp_path):
+    monkeypatch.setattr(shapes, "SHAPES_DIR", tmp_path)
+    response = client.get("/api/shapes")
+    assert response.status_code == 503
+    assert "data file is missing" in response.json()["detail"]

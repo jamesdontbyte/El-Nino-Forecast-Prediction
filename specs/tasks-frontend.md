@@ -29,18 +29,18 @@ Work top to bottom. Tick each box when done. Details are in specs/frontend.md.
 - [x] Loading message and error text in red (422, 503).
 
 ## 5. Shapes route and map
-- [ ] Back end: `GET /api/shapes`, one FeatureCollection of the 88 province shapes, built once and kept in memory.
-- [ ] Each feature keeps only `map_psgc` (10-digit string, padded with leading zeros) and `name` (`adm2_en`). Coordinates rounded to 3 decimals.
-- [ ] `GZipMiddleware` in backend/main.py. Missing files give the same 503 as the other Layer 2 routes.
-- [ ] Test: 88 features, every `map_psgc` is 10 characters and matches the `/api/map` codes.
-- [ ] Add the route to specs/layer2-impact.md.
-- [ ] src/components/DrynessMap.tsx: `GET /api/map` and `GET /api/shapes` once each, kept in state.
-- [ ] Controls: quarter (2026 Q4 / 2027 Q1) and view (`prediction`, `normal`, `el_nino_2015_16`, `el_nino_2023_24`).
-- [ ] Colour shapes from a `map_psgc -> colour` lookup, using the Tailwind hex shades in the spec. Map shows before any choice. Thick outline on the chosen province once picked. `<GeoJSON key={quarter + view}>` so it restyles.
-- [ ] Tooltip: GeoJSON name and `rain_pct`.
-- [ ] Explicit map height (for example `h-[500px]`).
-- [ ] OSM tile layer with the attribution "© OpenStreetMap contributors" linking to https://www.openstreetmap.org/copyright.
-- [ ] Caveat under the map: central forecast only, 2027 Q1 red count likely exaggerated.
+- [x] Back end: `GET /api/shapes`, one FeatureCollection of the 88 province shapes, built once and kept in memory.
+- [x] Each feature keeps only `map_psgc` (10-digit string, padded with leading zeros) and `name` (`adm2_en`). Coordinates rounded to 3 decimals.
+- [x] `GZipMiddleware` in backend/main.py. Missing files give the same 503 as the other Layer 2 routes.
+- [x] Test: 88 features, every `map_psgc` is 10 characters and matches the `/api/map` codes.
+- [x] Add the route to specs/layer2-impact.md.
+- [x] src/components/DrynessMap.tsx: `GET /api/map` and `GET /api/shapes` once each, kept in state.
+- [x] Controls: quarter (2026 Q4 / 2027 Q1) and view (`prediction`, `normal`, `el_nino_2015_16`, `el_nino_2023_24`).
+- [x] Colour shapes from a `map_psgc -> colour` lookup, using the Tailwind hex shades in the spec. Map shows before any choice. Thick outline on the chosen province once picked. `<GeoJSON key={quarter + view}>` so it restyles.
+- [x] Tooltip: GeoJSON name and `rain_pct`.
+- [x] Explicit map height (for example `h-[500px]`).
+- [x] OSM tile layer with the attribution "© OpenStreetMap contributors" linking to https://www.openstreetmap.org/copyright.
+- [x] Caveat under the map: central forecast only, 2027 Q1 red count likely exaggerated.
 
 ## 6. SimulationPage (Layer 3)
 - [ ] src/pages/SimulationPage.tsx: checkboxes `irrigation`, `switching`. Optional inputs `pump_share` (0 to 1, default 0.2), `switch_share` (0 to 1, default 0.1), `irrigation_gain` (0 to 10, default 3.6).

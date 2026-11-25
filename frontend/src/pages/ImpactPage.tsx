@@ -1,16 +1,9 @@
 import { useEffect, useState } from 'react'
 import { getImpact } from '../api'
+import { colourInfo } from '../colours'
+import DrynessMap from '../components/DrynessMap'
 import ProvinceCropPicker from '../components/ProvinceCropPicker'
-import type { Colour, Impact, ImpactQuarter, Options } from '../types'
-
-// Dryness colours (PAGASA rain bands, specs/layer2-impact.md). Hex values are Tailwind's standard shades.
-// shortcut: lives here until the map (task 5) needs the same lookup, then move it to DrynessMap.
-const colourInfo: Record<Colour, { hex: string; label: string }> = {
-  green: { hex: '#22c55e', label: 'Healthy (above 80% of normal rain)' },
-  yellow: { hex: '#facc15', label: 'Stressed (40 to 80% of normal rain)' },
-  red: { hex: '#dc2626', label: 'Severe (40% of normal rain or less)' },
-  grey: { hex: '#9ca3af', label: 'No rainfall data' },
-}
+import type { Impact, ImpactQuarter, Options } from '../types'
 
 // "+1.2%" or "-4.5%", so a gain and a loss are easy to tell apart.
 const signedPercent = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(1)}%`
@@ -61,6 +54,7 @@ function ImpactPage({ options, province, crop, onProvinceChange, onCropChange }:
           {impact.quarters.map((quarter) => <QuarterCard key={quarter.quarter} quarter={quarter} />)}
         </div>
       )}
+      <DrynessMap province={province} />
     </div>
   )
 }

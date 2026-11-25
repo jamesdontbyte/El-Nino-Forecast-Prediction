@@ -3,6 +3,7 @@
 - GET /api/options: the provinces and crops the front end can offer.
 - GET /api/map: the dryness map views for every forecast quarter.
 - GET /api/impact?province=...&crop=...: rainfall and yield change for one province and crop.
+- GET /api/shapes: the 88 map shapes as one GeoJSON FeatureCollection, built once and kept in memory.
 
 The routes never train. Run `python -m app.layer1_forecast.train` and `python -m app.layer2.train`
 from backend/ first. Files are read on every request, so retrained models are used without a restart.
@@ -10,6 +11,7 @@ from backend/ first. Files are read on every request, so retrained models are us
 
 from fastapi import APIRouter, HTTPException
 
+from app.layer2 import shapes
 from app.layer2.features import load_lookup
 from app.layer2.impact import CROP_TYPES, load_impact, province_names
 from app.layer2.map_output import load_map_views
@@ -36,6 +38,14 @@ def get_options() -> dict:
 def get_map() -> list[dict]:
     try:
         return load_map_views()
+    except FileNotFoundError as missing:
+        raise missing_file(missing) from missing
+
+
+@router.get("/api/shapes")
+def get_shapes() -> dict:
+    try:
+        return shapes.load_shapes(shapes.SHAPES_DIR)  # read at call time, so a test can point it elsewhere
     except FileNotFoundError as missing:
         raise missing_file(missing) from missing
 

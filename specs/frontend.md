@@ -24,6 +24,7 @@ frontend/
     index.css                   @import "tailwindcss";
     api.ts                      one fetch helper + one function per route
     types.ts                    TypeScript types for each JSON response
+    colours.ts                  dryness colour hex values and labels, shared by the Impact cards and the map
     pages/ForecastPage.tsx      Layer 1
     pages/ImpactPage.tsx        Layer 2
     pages/SimulationPage.tsx    Layer 3
