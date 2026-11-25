@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getOptions } from './api'
 import ForecastPage from './pages/ForecastPage'
+import ImpactPage from './pages/ImpactPage'
 import type { Options } from './types'
 
 const tabs = ['Forecast', 'Impact', 'Simulation'] as const
@@ -10,6 +11,9 @@ function App() {
   const [activeTab, setActiveTab] = useState<Tab>('Forecast')
   const [options, setOptions] = useState<Options | null>(null)
   const [optionsError, setOptionsError] = useState<string | null>(null)
+  // Shared by the Impact and Simulation tabs. An empty string means nothing is chosen yet.
+  const [province, setProvince] = useState('')
+  const [crop, setCrop] = useState('')
 
   useEffect(() => {
     // In development, StrictMode runs effects twice. The flag stops the first call from setting state.
@@ -44,8 +48,17 @@ function App() {
         {optionsError && <p className="text-red-600">Could not load provinces and crops: {optionsError}</p>}
         {!options && !optionsError && <p>Loading provinces and crops...</p>}
         {activeTab === 'Forecast' && <ForecastPage />}
-        {/* The Impact and Simulation pages are added in later tasks. */}
-        {activeTab !== 'Forecast' && <p>{activeTab} page</p>}
+        {activeTab === 'Impact' && options && (
+          <ImpactPage
+            options={options}
+            province={province}
+            crop={crop}
+            onProvinceChange={setProvince}
+            onCropChange={setCrop}
+          />
+        )}
+        {/* The Simulation page is added in task 6. */}
+        {activeTab === 'Simulation' && <p>Simulation page</p>}
       </main>
     </div>
   )

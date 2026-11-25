@@ -21,12 +21,12 @@ Work top to bottom. Tick each box when done. Details are in specs/frontend.md.
 - [x] Table of `forecast_series` (month, oni, lower to upper) with each month's `event_status`.
 
 ## 4. Picker and Impact cards (Layer 2)
-- [ ] App keeps the chosen province and crop, shared by Impact and Simulation (moved here from step 2: TypeScript rejects state that nothing uses yet).
-- [ ] src/components/ProvinceCropPicker.tsx: two dropdowns from `/api/options`. Nothing chosen at start: "Choose a province" and "Choose a crop" placeholders.
-- [ ] src/pages/ImpactPage.tsx: "Choose a province and crop" until both are picked, with no call before that.
-- [ ] `GET /api/impact` on each choice change, with an ignore flag in the `useEffect` cleanup.
-- [ ] Two quarter cards (2026 Q4, 2027 Q1): `rain_pct`, `colour`, `yield_change_pct`, normal vs predicted yield. "Not enough data" when `enough_data` is false.
-- [ ] Loading message and error text in red (422, 503).
+- [x] App keeps the chosen province and crop, shared by Impact and Simulation (moved here from step 2: TypeScript rejects state that nothing uses yet).
+- [x] src/components/ProvinceCropPicker.tsx: two dropdowns from `/api/options`. Nothing chosen at start: "Choose a province" and "Choose a crop" placeholders.
+- [x] src/pages/ImpactPage.tsx: "Choose a province and crop" until both are picked, with no call before that.
+- [x] `GET /api/impact` on each choice change, with an ignore flag in the `useEffect` cleanup.
+- [x] Two quarter cards (2026 Q4, 2027 Q1): `rain_pct`, `colour`, `yield_change_pct`, normal vs predicted yield. "Not enough data" when `enough_data` is false.
+- [x] Loading message and error text in red (422, 503).
 
 ## 5. Shapes route and map
 - [ ] Back end: `GET /api/shapes`, one FeatureCollection of the 88 province shapes, built once and kept in memory.
