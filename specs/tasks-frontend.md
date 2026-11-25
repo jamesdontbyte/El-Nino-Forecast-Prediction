@@ -10,19 +10,21 @@ Work top to bottom. Tick each box when done. Details are in specs/frontend.md.
 - [x] src/App.tsx: header and 3 tabs switched with `useState`, no router.
 
 ## 2. Types and API helper
-- [ ] src/types.ts: one type per JSON response (options, forecast, impact, map, shapes, simulate).
-- [ ] src/api.ts: one fetch helper that throws the back end's `detail` text on any non-2xx, and one function per route. Query strings built with `URLSearchParams`.
-- [ ] App loads `GET /api/options` once and keeps the chosen province and crop, shared by Impact and Simulation.
+- [x] src/types.ts: one type per JSON response (options, forecast, impact, map, shapes, simulate).
+- [x] src/api.ts: one fetch helper that throws the back end's `detail` text on any non-2xx, and one function per route. Query strings built with `URLSearchParams`.
+- [x] App loads `GET /api/options` once, with loading message and error text in red.
 
 ## 3. ForecastPage (Layer 1)
 - [ ] src/pages/ForecastPage.tsx: `GET /api/forecast` once, with loading message and error text in red.
 - [ ] Show `event_underway`, `start_month`, `strength`, `duration_months.text` (with a note when `duration_open_ended` is true), and `model_used`.
-- [ ] "No event underway" when `duration_months` and `duration_open_ended` are null.
+- [ ] When `event_underway` is false: "No event underway", plus the predicted start and strength when `start_month` and `strength` are not null.
 - [ ] Table of `forecast_series` (month, oni, lower to upper) with each month's `event_status`.
 
 ## 4. Picker and Impact cards (Layer 2)
-- [ ] src/components/ProvinceCropPicker.tsx: two dropdowns from `/api/options`.
-- [ ] src/pages/ImpactPage.tsx: `GET /api/impact` on each choice change, with an ignore flag in the `useEffect` cleanup.
+- [ ] App keeps the chosen province and crop, shared by Impact and Simulation (moved here from step 2: TypeScript rejects state that nothing uses yet).
+- [ ] src/components/ProvinceCropPicker.tsx: two dropdowns from `/api/options`. Nothing chosen at start: "Choose a province" and "Choose a crop" placeholders.
+- [ ] src/pages/ImpactPage.tsx: "Choose a province and crop" until both are picked, with no call before that.
+- [ ] `GET /api/impact` on each choice change, with an ignore flag in the `useEffect` cleanup.
 - [ ] Two quarter cards (2026 Q4, 2027 Q1): `rain_pct`, `colour`, `yield_change_pct`, normal vs predicted yield. "Not enough data" when `enough_data` is false.
 - [ ] Loading message and error text in red (422, 503).
 
@@ -34,7 +36,7 @@ Work top to bottom. Tick each box when done. Details are in specs/frontend.md.
 - [ ] Add the route to specs/layer2-impact.md.
 - [ ] src/components/DrynessMap.tsx: `GET /api/map` and `GET /api/shapes` once each, kept in state.
 - [ ] Controls: quarter (2026 Q4 / 2027 Q1) and view (`prediction`, `normal`, `el_nino_2015_16`, `el_nino_2023_24`).
-- [ ] Colour shapes from a `map_psgc -> colour` lookup. Thick outline on the chosen province. `<GeoJSON key={quarter + view}>` so it restyles.
+- [ ] Colour shapes from a `map_psgc -> colour` lookup, using the Tailwind hex shades in the spec. Map shows before any choice. Thick outline on the chosen province once picked. `<GeoJSON key={quarter + view}>` so it restyles.
 - [ ] Tooltip: GeoJSON name and `rain_pct`.
 - [ ] Explicit map height (for example `h-[500px]`).
 - [ ] OSM tile layer with the attribution "© OpenStreetMap contributors" linking to https://www.openstreetmap.org/copyright.
@@ -42,7 +44,8 @@ Work top to bottom. Tick each box when done. Details are in specs/frontend.md.
 
 ## 6. SimulationPage (Layer 3)
 - [ ] src/pages/SimulationPage.tsx: checkboxes `irrigation`, `switching`. Optional inputs `pump_share` (0 to 1, default 0.2), `switch_share` (0 to 1, default 0.1), `irrigation_gain` (0 to 10, default 3.6).
-- [ ] Run button calls `GET /api/simulate`, with loading message and error text in red.
+- [ ] Run button calls `GET /api/simulate`, with loading message and error text in red. Disabled until both a province and a crop are chosen.
+- [ ] Clear the results when the province or crop changes.
 - [ ] Per quarter, "without" and "with" side by side: `avg_yield_change_pct`, `groups` table, `pumps_given`, `switched`, `notes`. Handle `enough_data` false.
 - [ ] Show `irrigated_share` only when not null.
 - [ ] Bottom: the `assumptions` list and the `disclaimer`.

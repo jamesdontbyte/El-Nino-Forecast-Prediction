@@ -1,10 +1,23 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { getOptions } from './api'
+import type { Options } from './types'
 
 const tabs = ['Forecast', 'Impact', 'Simulation'] as const
 type Tab = (typeof tabs)[number]
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('Forecast')
+  const [options, setOptions] = useState<Options | null>(null)
+  const [optionsError, setOptionsError] = useState<string | null>(null)
+
+  useEffect(() => {
+    // In development, StrictMode runs effects twice. The flag stops the first call from setting state.
+    let ignore = false
+    getOptions()
+      .then((result) => { if (!ignore) setOptions(result) })
+      .catch((error: Error) => { if (!ignore) setOptionsError(error.message) })
+    return () => { ignore = true }
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
@@ -25,6 +38,8 @@ function App() {
         </nav>
       </header>
       <main className="p-6">
+        {optionsError && <p className="text-red-600">Could not load provinces and crops: {optionsError}</p>}
+        {!options && !optionsError && <p>Loading provinces and crops...</p>}
         {/* Pages are added in later tasks. */}
         <p>{activeTab} page</p>
       </main>
