@@ -43,12 +43,12 @@ Work top to bottom. Tick each box when done. Details are in specs/frontend.md.
 - [x] Caveat under the map: central forecast only, 2027 Q1 red count likely exaggerated.
 
 ## 6. SimulationPage (Layer 3)
-- [ ] src/pages/SimulationPage.tsx: checkboxes `irrigation`, `switching`. Optional inputs `pump_share` (0 to 1, default 0.2), `switch_share` (0 to 1, default 0.1), `irrigation_gain` (0 to 10, default 3.6).
-- [ ] Run button calls `GET /api/simulate`, with loading message and error text in red. Disabled until both a province and a crop are chosen.
-- [ ] Clear the results when the province or crop changes.
-- [ ] Per quarter, "without" and "with" side by side: `avg_yield_change_pct`, `groups` table, `pumps_given`, `switched`, `notes`. Handle `enough_data` false.
-- [ ] Show `irrigated_share` only when not null.
-- [ ] Bottom: the `assumptions` list and the `disclaimer`.
+- [x] src/pages/SimulationPage.tsx: checkboxes `irrigation`, `switching`. Optional inputs `pump_share` (0 to 1, default 0.2), `switch_share` (0 to 1, default 0.1), `irrigation_gain` (0 to 10, default 3.6).
+- [x] Run button calls `GET /api/simulate`, with loading message and error text in red. Disabled until both a province and a crop are chosen.
+- [x] Clear the results when the province or crop changes.
+- [x] Per quarter, "without" and "with" side by side: `avg_yield_change_pct`, `groups` table, `pumps_given`, `switched`, `notes`. Handle `enough_data` false.
+- [x] Show `irrigated_share` only when not null.
+- [x] Bottom: the `assumptions` list and the `disclaimer`.
 
 ## 7. Checks
 - [ ] Front end from frontend/: `npx tsc -b`, `npm run lint`, `npm run build`.

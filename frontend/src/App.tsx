@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { getOptions } from './api'
 import ForecastPage from './pages/ForecastPage'
 import ImpactPage from './pages/ImpactPage'
+import SimulationPage from './pages/SimulationPage'
 import type { Options } from './types'
 
 const tabs = ['Forecast', 'Impact', 'Simulation'] as const
@@ -57,8 +58,15 @@ function App() {
             onCropChange={setCrop}
           />
         )}
-        {/* The Simulation page is added in task 6. */}
-        {activeTab === 'Simulation' && <p>Simulation page</p>}
+        {activeTab === 'Simulation' && options && (
+          <SimulationPage
+            options={options}
+            province={province}
+            crop={crop}
+            onProvinceChange={setProvince}
+            onCropChange={setCrop}
+          />
+        )}
       </main>
     </div>
   )
