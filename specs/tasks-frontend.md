@@ -15,10 +15,10 @@ Work top to bottom. Tick each box when done. Details are in specs/frontend.md.
 - [x] App loads `GET /api/options` once, with loading message and error text in red.
 
 ## 3. ForecastPage (Layer 1)
-- [ ] src/pages/ForecastPage.tsx: `GET /api/forecast` once, with loading message and error text in red.
-- [ ] Show `event_underway`, `start_month`, `strength`, `duration_months.text` (with a note when `duration_open_ended` is true), and `model_used`.
-- [ ] When `event_underway` is false: "No event underway", plus the predicted start and strength when `start_month` and `strength` are not null.
-- [ ] Table of `forecast_series` (month, oni, lower to upper) with each month's `event_status`.
+- [x] src/pages/ForecastPage.tsx: `GET /api/forecast` once, with loading message and error text in red.
+- [x] Show `event_underway`, `start_month`, `strength`, `duration_months.text` (with a note when `duration_open_ended` is true), and `model_used`.
+- [x] When `event_underway` is false: "No event underway", plus the predicted start and strength when `start_month` and `strength` are not null.
+- [x] Table of `forecast_series` (month, oni, lower to upper) with each month's `event_status`.
 
 ## 4. Picker and Impact cards (Layer 2)
 - [ ] App keeps the chosen province and crop, shared by Impact and Simulation (moved here from step 2: TypeScript rejects state that nothing uses yet).
