@@ -1,6 +1,6 @@
-import type { Layer, PathOptions } from 'leaflet'
+import { geoJSON, type Layer, type PathOptions } from 'leaflet'
 import { useEffect, useState } from 'react'
-import { GeoJSON, MapContainer, TileLayer } from 'react-leaflet'
+import { GeoJSON, MapContainer, TileLayer, useMap } from 'react-leaflet'
 import { getMap, getShapes } from '../api'
 import { colourInfo } from '../colours'
 import type { Colour, MapQuarter, MapShape, MapViewName, Shapes } from '../types'
@@ -10,6 +10,25 @@ const viewNames: Record<MapViewName, string> = {
   normal: 'Normal year',
   el_nino_2015_16: 'El Niño 2015-16',
   el_nino_2023_24: 'El Niño 2023-24',
+}
+
+const countryCenter: [number, number] = [12.5, 122]
+const countryZoom = 5
+
+// Zooms to the chosen province, or back to the whole country when none is chosen.
+// Sits outside the keyed <GeoJSON>, so changing quarter or view does not re-zoom.
+function ZoomToProvince({ province, quarters, shapes }: { province: string; quarters: MapQuarter[]; shapes: Shapes }) {
+  const map = useMap()
+  useEffect(() => {
+    // Merged provinces (Maguindanao, Davao del Sur) have 2 shapes, so collect every code with this name.
+    const codes = new Set(
+      quarters[0].views.prediction.shapes.filter((shape) => shape.province === province).map((shape) => shape.map_psgc),
+    )
+    const chosen = shapes.features.filter((feature) => codes.has(feature.properties.map_psgc))
+    if (chosen.length === 0) map.setView(countryCenter, countryZoom)
+    else map.fitBounds(geoJSON(chosen).getBounds())
+  }, [map, province, quarters, shapes])
+  return null
 }
 
 // The chosen province (a crop province name, '' if none) gets a thick outline.
@@ -85,7 +104,8 @@ function DrynessMap({ province }: { province: string }) {
         </label>
       </div>
 
-      <MapContainer center={[12.5, 122]} zoom={5} className="mt-4 h-[500px] w-full rounded">
+      <MapContainer center={countryCenter} zoom={countryZoom} className="mt-4 h-[500px] w-full rounded">
+        <ZoomToProvince province={province} quarters={data.quarters} shapes={data.shapes} />
         <TileLayer
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
