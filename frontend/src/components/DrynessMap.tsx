@@ -104,7 +104,8 @@ function DrynessMap({ province }: { province: string }) {
         </label>
       </div>
 
-      <MapContainer center={countryCenter} zoom={countryZoom} className="mt-4 h-[500px] w-full rounded">
+      {/* preferCanvas: draw every shape on one canvas instead of one SVG element each (faster with many shapes). */}
+      <MapContainer center={countryCenter} zoom={countryZoom} preferCanvas className="mt-4 h-[500px] w-full rounded">
         <ZoomToProvince province={province} quarters={data.quarters} shapes={data.shapes} />
         <TileLayer
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
