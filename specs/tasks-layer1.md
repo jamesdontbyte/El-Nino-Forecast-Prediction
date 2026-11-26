@@ -73,7 +73,7 @@ Work top to bottom. Tick each box when done. Details are in specs/layer1-forecas
 - [x] train.py: fit the chosen model once per hindcast year on the ONI table cut at that year's anchor (March of the target year), so every target used is at or before the anchor, and save them in oni_forecast.joblib keyed by year. Update the metadata file. Test: no hindcast model uses data after its anchor.
 - [x] forecast.py: `forecast_from_bundle` takes the ONI table and the models per lead, so the live forecast and the hindcast share one path. Check its callers (layer2 impact and map, simulation) still give the same result.
 - [x] outputs.py: climatology rows (mean ONI, status shares, and event start share per calendar month) from full observed years. Tests.
-- [ ] forecast.py: optional `year` query (1960 to 2100), mode choice, `mode`, `target_year`, `note`, and `observed_oni` in hindcast. Without `year`, the response is unchanged. An old model file without hindcast models returns 503. Update `save_small_model` in tests/test_api.py. Tests for each mode, the boundary years, and B in June and in December.
+- [x] forecast.py: optional `year` query (1960 to 2100), mode choice, `mode`, `target_year`, `note`, and `observed_oni` in hindcast. Without `year`, the response is unchanged. An old model file without hindcast models returns 503. Update `save_small_model` in tests/test_api.py. Tests for each mode, the boundary years, and B in June and in December.
 - [ ] Run the checks and go through the "Done when" list in section 12.
 
 ## 12. Part B: ERA5 features (layer1 spec, section 13). Do not start until ERA5 is downloaded.
