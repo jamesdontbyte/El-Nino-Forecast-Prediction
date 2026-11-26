@@ -4,6 +4,7 @@ Each row is anchored on month B: the newest ONI value that would be published at
 forecast time (ONI is a centred three-month average, so it is about two months old).
 - Lag k feature:  ONI k months before the first forecast month B+1, so lag 1 = ONI(B).
 - Lead h target:  ONI at B+h.
+- ERA5 lag k:     the ERA5 anomaly k-1 months before B, so lag 1 = ERA5(B) (add_era5_lags).
 Every feature is at or before B, so nothing from the future leaks into the inputs.
 
 Run from backend/:  python -m app.layer1_forecast.features   (prints the split sizes)
@@ -12,11 +13,14 @@ Run from backend/:  python -m app.layer1_forecast.features   (prints the split s
 import pandas as pd
 
 from app.data.load_enso import OUTPUT_PATH as ENSO_MONTHLY_PATH
+from app.data.load_era5 import FEATURE_COLUMNS as ERA5_COLUMNS
 
 LAGS = [1, 3, 6, 12]
 LEADS = list(range(1, 7))
 LAG_COLUMNS = [f"oni_lag{k}" for k in LAGS]
 TARGET_COLUMNS = [f"target_lead{h}" for h in LEADS]
+ERA5_LAGS = [1, 3]
+ERA5_LAG_COLUMNS = [f"{column}_lag{k}" for column in ERA5_COLUMNS for k in ERA5_LAGS]
 
 # Split by the anchor month's year (inclusive). Test runs to the latest month.
 TRAIN_LAST_YEAR = 2008
@@ -40,6 +44,20 @@ def build_features(table: pd.DataFrame) -> pd.DataFrame:
         frame[column] = oni.shift(-h)  # negative shift looks h months ahead
 
     return frame.dropna(subset=LAG_COLUMNS).reset_index(drop=True)
+
+
+def add_era5_lags(frame: pd.DataFrame, era5: pd.DataFrame) -> pd.DataFrame:
+    """Add ERA5_LAG_COLUMNS to a build_features frame, matched by date (gaps cannot shift them).
+
+    `era5` needs `date` and the ERA5 anomaly columns. Rows missing any ERA5 lag are dropped.
+    """
+    era5 = era5.set_index("date")[ERA5_COLUMNS]
+    frame = frame.copy()
+    for k in ERA5_LAGS:
+        values = era5.reindex(frame["date"] - pd.DateOffset(months=k - 1))  # lag 1 is B itself
+        for column in ERA5_COLUMNS:
+            frame[f"{column}_lag{k}"] = values[column].to_numpy()
+    return frame.dropna(subset=ERA5_LAG_COLUMNS).reset_index(drop=True)
 
 
 def _last_target_date(frame: pd.DataFrame) -> pd.Series:

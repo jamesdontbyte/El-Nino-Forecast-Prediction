@@ -1,8 +1,11 @@
 import pandas as pd
 
+from app.data.load_era5 import FEATURE_COLUMNS as ERA5_COLUMNS
 from app.layer1_forecast.features import (
+    ERA5_LAG_COLUMNS,
     LAG_COLUMNS,
     TARGET_COLUMNS,
+    add_era5_lags,
     build_features,
     split_by_date,
 )
@@ -67,3 +70,45 @@ def test_no_month_is_in_two_splits():
     splits = split_by_date(build_features(table))
     all_dates = pd.concat([part["date"] for part in splits.values()])
     assert not all_dates.duplicated().any()
+
+
+def make_era5_table(start="2000-01", months=40, first_value=0.0):
+    """Made-up ERA5 anomalies where every column equals the row number plus first_value."""
+    dates = pd.date_range(start, periods=months, freq="MS")
+    values = [first_value + i for i in range(months)]
+    return pd.DataFrame({"date": dates, **{column: values for column in ERA5_COLUMNS}})
+
+
+def test_era5_lag1_is_the_anchor_month_and_lag3_two_months_before():
+    frame = add_era5_lags(build_features(make_counting_table()), make_era5_table())
+    row = frame[frame["date"] == pd.Timestamp("2001-06-01")].iloc[0]
+    for column in ERA5_COLUMNS:
+        assert row[f"{column}_lag1"] == 17  # ERA5 at B (2001-06 is row 17)
+        assert row[f"{column}_lag3"] == 15  # ERA5 at B-2
+
+
+def test_era5_features_never_use_data_after_the_anchor():
+    oni = make_counting_table()
+    era5 = make_era5_table()
+    anchor = pd.Timestamp("2001-06-01")
+    before = add_era5_lags(build_features(oni), era5)
+
+    # Change every ERA5 and ONI value after B. The features of row B must not move.
+    era5.loc[era5["date"] > anchor, ERA5_COLUMNS] += 1000
+    oni.loc[oni["date"] > anchor, "oni"] += 1000
+    after = add_era5_lags(build_features(oni), era5)
+
+    columns = LAG_COLUMNS + ERA5_LAG_COLUMNS
+    row_before = before.loc[before["date"] == anchor, columns].iloc[0]
+    row_after = after.loc[after["date"] == anchor, columns].iloc[0]
+    assert row_before.equals(row_after)
+
+
+def test_rows_without_era5_are_dropped():
+    # ERA5 starts 2001-03, so lag 3 first exists at B = 2001-05; it ends 2002-01.
+    era5 = make_era5_table(start="2001-03", months=11)
+    frame = add_era5_lags(build_features(make_counting_table()), era5)
+
+    assert frame["date"].min() == pd.Timestamp("2001-05-01")
+    assert frame["date"].max() == pd.Timestamp("2002-01-01")
+    assert frame[ERA5_LAG_COLUMNS].notna().all().all()

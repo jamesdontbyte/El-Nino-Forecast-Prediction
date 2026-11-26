@@ -80,7 +80,7 @@ Work top to bottom. Tick each box when done. Details are in specs/layer1-forecas
 - [x] Confirm the ERA5 variables and boxes requested: SST, 10 m u and v wind, mean sea level pressure, total precipitation, 30°S to 30°N, two files (120°E to 180° and 180°W to 70°W).
 - [x] Once downloaded: check the years, months, file size, and longitude convention of both files, and that their variables, years, and months match.
 - [x] backend/app/data/load_era5.py: box averages (cos-latitude weighted), anomalies against the 1950 to 2008 monthly averages, save data/processed/era5_monthly.csv. Check for gaps.
-- [ ] features.py: join ERA5 on the month, add lag 1 and lag 3 of each ERA5 feature. Tests.
+- [x] features.py: join ERA5 on the month, add lag 1 and lag 3 of each ERA5 feature. Tests.
 - [ ] Compare every regression model with and without ERA5 on validation, on the same rows. Repeat once with ERA5 from 1979 as a check. Choose with the existing rule, then score the test period once more. Record the result in section 7.
 - [ ] Always: add `era5_used` to the response (false while ERA5 is not kept; absent in climatology).
 - [ ] If ERA5 is kept: train.py saves the ERA5 model and the best ONI-only model, each with its own validation RMSE. The route falls back to ONI only when ERA5 does not reach month B and sets `era5_used`. Hindcast models use the ERA5 features. Test the fallback.
