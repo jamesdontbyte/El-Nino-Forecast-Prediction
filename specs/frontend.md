@@ -43,7 +43,15 @@ The fetch helper in `api.ts` throws the back end's `detail` text on any non-2xx 
 - Nothing is chosen at start. The dropdowns show "Choose a province" and "Choose a crop" until the user picks.
 
 ### ForecastPage (Layer 1)
-- `GET /api/forecast` once.
+- A card at the top: "Target year (optional)" number box (no min or max, and the form skips the browser's own checks, so the back end alone judges the year), a Show button (a form submit, so Enter works; disabled while the box is empty), and a "Live forecast" button that clears the year. The page opens on the live forecast. A request is sent only on Show. The card stays on screen during loading and errors; the loading or error text shows below it.
+- `api.ts`: `getForecast()` is unchanged for the live forecast. New `getForecastForYear(year)` calls `/api/forecast?year=` and returns `Forecast | Climatology`.
+- The front end never decides the mode and never hard-codes the year ranges (they move with the newest ONI month). It reads `mode` and `note` from the response.
+- Results are kept with the year they belong to, so an old result or error never shows next to a new year.
+- `forecast` mode: label "Forecast for <year>" and the `note`; same status card and table as the live forecast.
+- `hindcast` mode: label "Hindcast for <year>: what the model would have said in March <year>. Not a live forecast." plus `note`, plus a one-line caveat: hindcasts look better than real forecasts were, because past data is cleaner now and the model was chosen on 2009 to 2016. Status card titled "As forecast in March <year>". Table columns: Month, Predicted ONI, Likely range, Actual ONI (observed) from `observed_oni` ("not observed" when null), Predicted status. Model name shown as "Linear regression (hindcast)" (the " (hindcast)" suffix is split off before the name lookup). No MAE is shown: the back end does not return one.
+- `climatology` mode: amber box "Historical average, not a forecast" plus `note`. No status card and no forecast table. A 12-row table: Month name, Mean ONI, and "share of years" columns El Niño, Neutral, La Niña, El Niño start (fractions shown as %). One line: mean ONI is near 0 in every month, the shares are the useful part. Model line "No model (historical average)". No data-source line.
+- Bad input: the back end's own 422 text (for example "Input should be greater than or equal to 1960") shown in red. The limits are not copied into React. A 503 shows the back end's retrain message, as on the other pages.
+- `era5_used`: a small data-source line under the model line. True: "Data: ONI and ERA5 Pacific reanalysis", and in the live forecast and `forecast` mode also a note that the newest ERA5 months are an early release (ERA5T) that may still be revised. False: "Data: ONI only (ERA5 file not built, so the ONI-only model was used)". Not shown in climatology (the field is absent).
 - Shows `event_underway`, `start_month`, `strength`, `duration_months.text` with a note when `duration_open_ended` is true, and `model_used`.
 - Table of `forecast_series` (month, oni, lower to upper) with the matching `event_status` for each month.
 - When no event is underway, `duration_months` is null and `duration_open_ended` is false. Show "No event underway" instead of the duration.

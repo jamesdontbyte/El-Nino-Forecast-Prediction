@@ -35,7 +35,7 @@ The system forecasts El Niño conditions, estimates the effect on crops in a cho
 - Crop (for example rice or corn)
 - Policy choices: irrigation support and crop switching (on or off), and optionally the pump share, switch share and irrigation gain (defaults 20%, 10% and +3.6 points)
 
-The user does not pick the forecast date, horizon, or model. The system works those out. One exception: the forecast route takes an optional target year. A past year gives a hindcast (what the system would have forecast then, next to what happened), the current or next year gives the normal forecast, and a later year gives the historical average, labelled as an average, not a forecast. The system still picks the anchor month, horizon, and model. Details are in `specs/layer1-forecast.md`, section 12. A second exception: the simulation may replay a named past El Niño (now only "El Niño 2015-16"), chosen by name, not by year. Details are in `specs/layer3-simulation.md`, section 11.
+The user does not pick the forecast date, horizon, or model. The system works those out. One exception: the forecast route takes an optional target year. A past year gives a hindcast (what the system would have forecast then, next to what happened), the current or next year gives the normal forecast, and a later year gives the historical average, labelled as an average, not a forecast. The system still picks the anchor month, horizon, and model. The Forecast page has an optional year box for it. Details are in `specs/layer1-forecast.md`, section 12. A second exception: the simulation may replay a named past El Niño (now only "El Niño 2015-16"), chosen by name, not by year. Details are in `specs/layer3-simulation.md`, section 11.
 
 ## 5. What the System Predicts
 

@@ -190,7 +190,7 @@ Start and duration are derived from the forecast ONI series using the label rule
 
 ## 11. Open Items
 
-- Part A (section 12): decided. Hindcast anchor March, years 1960 to 2100, no year input in the front end for now.
+- Part A (section 12): decided. Hindcast anchor March, years 1960 to 2100, the Forecast page has an optional year input (decided 2026-11-26, see `specs/frontend.md`).
 - Part B (section 13): confirm which ERA5 variables and box were actually requested, once the download finishes.
 
 ## 12. Part A: Optional Target Year
@@ -254,7 +254,7 @@ Absent means the key is not in the response, so the existing front-end types and
 
 **Code reuse:** `forecast_from_bundle` gets the ONI table and the models per lead as inputs, so the live forecast and the hindcast share one code path. Its callers (`api/forecast.py`, `layer2/impact.py`, `layer2/map_output.py`, `simulation/simulate.py`) keep the same result.
 
-**Files:** `backend/app/api/forecast.py` (route, mode choice), `backend/app/layer1_forecast/outputs.py` (climatology rows), `backend/app/layer1_forecast/train.py` (hindcast models). Layer 2 and Layer 3 keep calling the forecast without `year`. The front end does not use `year` for now; it can be tried through FastAPI's `/docs` page (decided: no year input in the front end for now).
+**Files:** `backend/app/api/forecast.py` (route, mode choice), `backend/app/layer1_forecast/outputs.py` (climatology rows), `backend/app/layer1_forecast/train.py` (hindcast models). Layer 2 and Layer 3 keep calling the forecast without `year`. The Forecast page has an optional year input (decided 2026-11-26, see `specs/frontend.md`). The hindcast response has no MAE for the year, so the page does not show one (React does no data processing).
 
 **Done when:** each mode returns the fields above, the hindcast models never use data after their anchor month (checked by a test), the route without `year` returns the same result as before, and tests cover the year limits and the mode boundaries.
 
