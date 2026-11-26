@@ -125,6 +125,18 @@ Caution: the red cells are thin and come mostly from two quarters. Of the 158 re
 - **The irrigation gain is uncertain and driven by two events.** The +3.6 gap is not clearly larger than normal variation, and without 1998 Q1 and 2016 Q1 it disappears. So the simulation treats the irrigation gain as an assumption (section 5), not as a data result.
 - **Corn shows no gap.** In neither run is corn different from rainfed palay. This supports "switching shows no gain".
 
+**Yellow quarters (checked November 2026, same script, same method).** Not used by the simulation: the irrigation gain still applies only in red quarters unless a graded gain (option B) is approved.
+
+| Comparison | Rows | Gap (points) | 95% interval, rows | 95% interval, quarters | p-value |
+| --- | --- | --- | --- | --- | --- |
+| Irrigated Palay, all yellow quarters | 1,222 / 918 | +1.0 | +0.1 to +2.1 | -0.0 to +2.3 | 0.006 |
+| Irrigated Palay, without 1998 Q1 and 2016 Q1 | 1,164 / 887 | +0.9 | +0.1 to +2.1 | -0.2 to +2.3 | 0.012 |
+| Corn, all yellow quarters | 1,158 / 918 | -0.4 | -1.5 to +1.1 | -1.8 to +1.8 | 0.34 |
+| Corn, without 1998 Q1 and 2016 Q1 | 1,106 / 887 | -0.6 | -1.5 to +1.0 | -2.0 to +1.8 | 0.47 |
+
+- The yellow irrigated gap is small (about 1 point) but spread over 31 quarters (the largest, 2010 Q1, holds about 5% of rows) and barely moves without 1998 Q1 and 2016 Q1. The quarter-resampled interval touches 0, so it is likely real but only borderline firm. (The gap table's 1.1 is the difference of two rounded medians.)
+- Corn again shows no gap.
+
 ## 5. Assumptions
 
 These are assumptions, not data. The output lists them with the values used.

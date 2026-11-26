@@ -1,8 +1,8 @@
-"""Is the red-quarter gap between two crop types larger than normal variation?
+"""Is the red- or yellow-quarter gap between two crop types larger than normal variation?
 
 Compares Irrigated Palay and Corn, each against Rainfed Palay.
 Uses the same rows as the Layer 3 crop gap table (specs/layer3-simulation.md, section 4):
-El Nino quarters by the 2-of-3-months rule, red by the PAGASA bands on observed rain.
+El Nino quarters by the 2-of-3-months rule, red or yellow by the PAGASA bands on observed rain.
 Run from backend/:  PYTHONPATH=. .venv/Scripts/python.exe ../notebooks/06_crop_gap_check.py
 """
 
@@ -19,11 +19,11 @@ BASE_CROP = "Rainfed Palay"
 STRONG_QUARTERS = {(1998, 1), (2016, 1)}
 
 
-def red_rows():
+def colour_rows(colour):
     table = load_tables()["yield"].merge(quarter_phase(load_enso_monthly()), on=["year", "quarter"], how="left")
     table = table[table["phase"] == "El Nino"].copy()
     table["colour"] = table["rain_pct"].round(1).map(dryness_colour)
-    return table[table["colour"] == "red"]
+    return table[table["colour"] == colour]
 
 
 def changes(rows, crop):
@@ -67,8 +67,16 @@ def compare(rows, crop, label):
 
 
 if __name__ == "__main__":
-    rows = red_rows()
-    without_strong = rows[[(y, q) not in STRONG_QUARTERS for y, q in zip(rows["year"], rows["quarter"])]]
-    for crop in ["Irrigated Palay", "Corn"]:
-        compare(rows, crop, "all red El Nino quarters")
-        compare(without_strong, crop, "without 1998 Q1 and 2016 Q1")
+    for colour in ["red", "yellow"]:
+        rows = colour_rows(colour)
+        without_strong = rows[[(y, q) not in STRONG_QUARTERS for y, q in zip(rows["year"], rows["quarter"])]]
+        for crop in ["Irrigated Palay", "Corn"]:
+            compare(rows, crop, f"all {colour} El Nino quarters")
+            compare(without_strong, crop, "without 1998 Q1 and 2016 Q1")
+        if colour == "yellow":
+            in_test = rows[rows["crop_type"].isin(["Irrigated Palay", "Corn", BASE_CROP])]
+            counts = in_test.groupby(["year", "quarter", "crop_type"]).size().unstack(fill_value=0)
+            counts["total"] = counts.sum(axis=1)
+            print("\nYellow quarters with the most rows:")
+            print(counts.sort_values("total", ascending=False).head(5).to_string())
+            print(f"  yellow quarters in total: {len(counts)}")

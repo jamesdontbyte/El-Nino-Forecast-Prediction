@@ -42,5 +42,5 @@ Work top to bottom. Tick each box when done. Details are in specs/layer3-simulat
 - [x] Timing rule: policies act in every forecast quarter after the first.
 - [x] Replay builder and optional `event` on /api/simulate, with tests.
 - [x] Front end: replay choice and the replay note on the Simulation page.
-- [ ] Yellow-gap bootstrap in notebooks/06_crop_gap_check.py; numbers reported, no code change unless option B (graded irrigation gain) is approved.
+- [x] Yellow-gap bootstrap in notebooks/06_crop_gap_check.py; numbers reported, no code change unless option B (graded irrigation gain) is approved.
 - [ ] Checks (ruff, pytest, type check, lint, build, /health) and demo numbers in the spec.
