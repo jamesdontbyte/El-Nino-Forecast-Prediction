@@ -80,6 +80,31 @@ export type Shapes = FeatureCollection<
   { map_psgc: string; name: string }
 >;
 
+// The views shown per municipality. The prediction view is per province only.
+export type MunicipalViewName = Exclude<MapViewName, "prediction">;
+
+// GET /api/municipal_shapes
+export type MunicipalShapes = FeatureCollection<
+  Geometry,
+  { adm3_psgc: string; name: string; map_psgc: string }
+>;
+
+// GET /api/municipal_map
+export interface MunicipalRow {
+  adm3_psgc: string; // 10-digit code, matches the shapes from /api/municipal_shapes
+  map_psgc: string; // the province shape it belongs to
+  province: string | null; // null for the no-crop areas
+  rain_pct: number | null; // null for Kalayaan (no rainfall data)
+  colour: Colour;
+}
+
+export interface MunicipalMap {
+  quarter: string;
+  view: MunicipalViewName;
+  year: number | null;
+  municipalities: MunicipalRow[];
+}
+
 // GET /api/simulate
 export interface SimulationGroup {
   group: string;

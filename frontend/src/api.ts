@@ -3,6 +3,9 @@ import type {
   Forecast,
   Impact,
   MapQuarter,
+  MunicipalMap,
+  MunicipalShapes,
+  MunicipalViewName,
   Options,
   Shapes,
   Simulation,
@@ -33,6 +36,13 @@ export const getOptions = () => getJson<Options>("/api/options");
 export const getForecast = () => getJson<Forecast>("/api/forecast");
 export const getMap = () => getJson<MapQuarter[]>("/api/map");
 export const getShapes = () => getJson<Shapes>("/api/shapes");
+export const getMunicipalShapes = () =>
+  getJson<MunicipalShapes>("/api/municipal_shapes");
+// URLSearchParams encodes the space in quarter labels such as "2026 Q4".
+export const getMunicipalMap = (quarter: string, view: MunicipalViewName) =>
+  getJson<MunicipalMap>(
+    `/api/municipal_map?${new URLSearchParams({ quarter, view })}`,
+  );
 
 // URLSearchParams encodes spaces in crop names such as "Irrigated Palay".
 export const getImpact = (province: string, crop: string) =>

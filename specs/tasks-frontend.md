@@ -57,8 +57,9 @@ Work top to bottom. Tick each box when done. Details are in specs/frontend.md.
 
 ## 8. Map upgrade (specs/layer2-impact.md, section 11)
 - [x] Zoom: when a province is picked, fit the map to its shapes (both shapes for Maguindanao and Davao del Sur). Whole country when none is picked.
-- [ ] Municipal colours from `/api/municipal_map` and `/api/municipal_shapes`, province borders from `/api/shapes` as a thin outline, chosen province outlined thick. Zoom component outside the keyed `<GeoJSON>`.
-- [ ] Tooltip: municipality name, its rain %, and the province name.
-- [ ] Municipal layer keyed on quarter + view only; province outline layer keyed on province. `preferCanvas` on `MapContainer`.
-- [ ] Label yield as "province estimate" on the Impact cards and the Simulation page, card rain as "province rainfall", and say so in the map note.
-- [ ] Checks as in section 7.
+- [x] Municipal colours from `/api/municipal_map` and `/api/municipal_shapes` (shapes loaded the first time a municipal view is picked), province borders from `/api/shapes` as a thin outline, chosen province outlined thick. Zoom component outside the layers.
+- [x] Tooltip: municipality name, its province, and its rain % ("no rainfall data" for Kalayaan).
+- [x] Municipal layer built once and recoloured in place (`setStyle`), not keyed; province outline layer keyed on province. `preferCanvas` on `MapContainer`.
+- [x] Labels: "Province prediction" view, "Province rainfall" and "Province estimate" on the Impact cards and the Simulation page, and the note on large percentages in dry quarters.
+- [x] Checks: type check, lint, build, ruff, pytest, /health. Routes checked through the Vite proxy.
+- [ ] Click-through in a browser (the browser extension was not connected): user checklist in the 2026-11-26 report.

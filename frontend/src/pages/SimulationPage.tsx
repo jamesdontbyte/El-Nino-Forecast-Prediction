@@ -143,7 +143,9 @@ function QuarterResult({ quarter }: { quarter: SimulationQuarter }) {
       <h2 className="flex items-center gap-2 text-lg font-semibold">
         {quarter.quarter}
         <span className="inline-block h-4 w-4 rounded-full" style={{ backgroundColor: colourInfo[quarter.colour].hex }} />
-        <span className="text-sm font-normal text-gray-500">Rain: {quarter.rain_pct.toFixed(1)}% of normal</span>
+        <span className="text-sm font-normal text-gray-500">
+          Province rainfall: {quarter.rain_pct.toFixed(1)}% of normal
+        </span>
       </h2>
       {quarter.without && quarter.with && (
         <div className="mt-3 grid gap-6 md:grid-cols-2">
@@ -169,6 +171,7 @@ function Outcome({ title, outcome, children }: { title: string; outcome: Simulat
   return (
     <div>
       <h3 className="font-medium">{title}</h3>
+      <p className="text-sm text-gray-500">Province estimate</p>
       <p className="text-2xl font-semibold">{signedPercent(outcome.avg_yield_change_pct)} average yield</p>
       <table className="mt-2 w-full text-left text-sm">
         <thead className="border-b text-gray-500">

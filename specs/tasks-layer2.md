@@ -39,5 +39,5 @@ Commit and push after each task.
 - [x] Step 2a: download the CHIRPS grid for the Philippines, 1981-01 to 2025-02, from ERDDAP in 5 parts (174 MB, `data/raw/philippines/chirps_grid/`, gitignored).
 - [x] Step 2b: preprocessing script `python -m app.layer2.municipal_rain`: municipal quarterly rain % to data/processed/municipal_rain_quarterly.csv. 1 municipality (Kalayaan) has no value.
 - [x] Step 2c: new routes `/api/municipal_shapes` and `/api/municipal_map`, with new tests (1,642 shapes, codes match). Existing routes and tests unchanged.
-- [ ] Step 2d: front end colours municipalities, yield labelled "province estimate", card rain labelled "province rainfall".
+- [x] Step 2d: front end colours municipalities, yield labelled "province estimate", card rain labelled "province rainfall" (browser click-through still to do by the user).
 - [ ] Step 3 (optional): cropland mask. Source to be decided.

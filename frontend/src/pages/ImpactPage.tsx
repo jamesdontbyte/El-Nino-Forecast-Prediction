@@ -68,11 +68,12 @@ export function QuarterCard({ quarter }: { quarter: ImpactQuarter }) {
         <span className="inline-block h-4 w-4 rounded-full" style={{ backgroundColor: colour.hex }} />
         {colour.label}
       </p>
-      <p className="mt-1">Rain: {quarter.rain_pct.toFixed(1)}% of normal</p>
+      <p className="mt-1">Province rainfall: {quarter.rain_pct.toFixed(1)}% of normal</p>
       {/* When enough_data is true the back end always fills the three yield fields, hence the `!`. */}
       {quarter.enough_data ? (
         <>
-          <p className="mt-3 text-2xl font-semibold">{signedPercent(quarter.yield_change_pct!)} yield</p>
+          <p className="mt-3 text-sm text-gray-500">Province estimate</p>
+          <p className="text-2xl font-semibold">{signedPercent(quarter.yield_change_pct!)} yield</p>
           <p className="text-gray-500">
             Normal {quarter.normal_yield_t_per_ha!.toFixed(2)} t/ha, predicted{' '}
             {quarter.predicted_yield_t_per_ha!.toFixed(2)} t/ha
