@@ -126,6 +126,45 @@ def build_outputs(observed: pd.DataFrame, band: pd.DataFrame, model_used: str) -
     }
 
 
+def climatology_years(observed: pd.DataFrame) -> tuple[int, int]:
+    """First and last full year of observed ONI.
+
+    The newest month's year is left out because it is still incomplete: its later
+    months have no ONI yet, so they would be averaged over one year fewer.
+    """
+    years = observed["date"].dt.year
+    return int(years.min()), int(years.max()) - 1
+
+
+def climatology_rows(observed: pd.DataFrame) -> list[dict]:
+    """Historical average per calendar month (layer1 spec, section 12, climatology mode)."""
+    first_year, last_year = climatology_years(observed)
+    year_count = last_year - first_year + 1
+    in_range = observed[observed["date"].dt.year.between(first_year, last_year)]
+    months = in_range["date"].dt.month
+    status = month_status(in_range["oni"])
+
+    # Events come from the full table so a run crossing a year end is not cut in two.
+    events = find_events(observed)
+    starts = events["start_month"][events["start_month"].dt.year.between(first_year, last_year)]
+
+    def share(matches: pd.Series) -> float:
+        return round(int(matches.sum()) / year_count, 3)
+
+    rows = []
+    for month in range(1, 13):
+        month_statuses = status[months == month]
+        rows.append({
+            "month": month,
+            "mean_oni": round(float(in_range["oni"][months == month].mean()), 2),
+            "el_nino_share": share(month_statuses == "El Nino"),
+            "neutral_share": share(month_statuses == "Neutral"),
+            "la_nina_share": share(month_statuses == "La Nina"),
+            "event_start_share": share(starts.dt.month == month),
+        })
+    return rows
+
+
 def main() -> None:
     """Demo only: linear regression fitted on train, RMSE from validation. Nothing is saved."""
     from app.layer1_forecast.models import (

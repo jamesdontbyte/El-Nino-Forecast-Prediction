@@ -3,7 +3,13 @@ import json
 import pandas as pd
 import pytest
 
-from app.layer1_forecast.outputs import build_outputs, confidence_band, duration_text
+from app.layer1_forecast.outputs import (
+    build_outputs,
+    climatology_rows,
+    climatology_years,
+    confidence_band,
+    duration_text,
+)
 
 
 def observed_table(oni_values, start="2020-01"):
@@ -133,3 +139,47 @@ def test_no_event_and_output_is_json_ready():
 )
 def test_duration_text(low, high, open_ended, expected):
     assert duration_text(low, high, open_ended) == expected
+
+
+# Four full years (2000 to 2003) plus 3 months of 2004.
+# 2001 has an El Nino event from November 2001 to March 2002 (5 months, crossing the year end).
+# 2003 is La Nina all year. The 2004 months are strongly warm but must be ignored.
+CLIMATOLOGY = observed_table(
+    [0.0] * 12
+    + [0.0] * 10 + [0.6, 0.8]
+    + [0.9, 0.7, 0.6] + [0.0] * 9
+    + [-1.0] * 12
+    + [2.5] * 3,
+    start="2000-01",
+)
+
+
+def test_climatology_uses_full_years_only():
+    assert climatology_years(CLIMATOLOGY) == (2000, 2003)
+
+
+def test_climatology_has_12_rows_and_shares_sum_to_one():
+    rows = climatology_rows(CLIMATOLOGY)
+
+    assert [row["month"] for row in rows] == list(range(1, 13))
+    for row in rows:
+        total = row["el_nino_share"] + row["neutral_share"] + row["la_nina_share"]
+        assert total == pytest.approx(1.0)
+    json.dumps(rows)
+
+
+def test_climatology_ignores_the_incomplete_newest_year():
+    january = climatology_rows(CLIMATOLOGY)[0]
+
+    # Without 2004: Jan is neutral in 2000, El Nino in 2002, La Nina in 2003, neutral in 2001.
+    assert january["el_nino_share"] == 0.25
+    assert january["la_nina_share"] == 0.25
+    assert january["neutral_share"] == 0.5
+    assert january["mean_oni"] == round((0.0 + 0.0 + 0.9 - 1.0) / 4, 2)
+
+
+def test_climatology_counts_event_start_in_its_start_month():
+    rows = climatology_rows(CLIMATOLOGY)
+
+    assert rows[10]["event_start_share"] == 0.25  # November, one start in 4 years
+    assert sum(row["event_start_share"] for row in rows) == 0.25
