@@ -32,7 +32,8 @@ Commit and push after each task.
 - [x] Check the municipal shapes: 88 files, 1,642 shapes, every province shape covered, codes match the lookup.
 - [x] Decide the open items in section 10: CHIRPS grid, prediction view option (a), normal period matching `rfh_avg`.
 - [x] Look up the CHIRPS grid download route and size, and the `rfh_avg` years. Show the user before downloading.
-- [x] Check CHC for 2025-2026 monthly files: found yearly NetCDF files (164 + 137 MiB). Waiting for the user's choice.
+- [x] Check CHC for 2025-2026 monthly files: found yearly NetCDF files (164 + 137 MiB).
+- [x] Download the CHC 2025 and 2026 yearly files, cut to the Philippines (`data/raw/philippines/chirps_chc/`, 2026 ends in October). January and February 2025 are identical to ERDDAP.
 - [x] Province check: rebuild the 81 province quarters from the grid and compare with the CSV. The 1989-2018 normal is confirmed (`python -m app.layer2.grid_rain`, test in tests/test_grid_rain.py).
 - [x] Step 1: zoom to the chosen province (front end, see tasks-frontend.md).
 - [x] Step 2a: download the CHIRPS grid for the Philippines, 1981-01 to 2025-02, from ERDDAP in 5 parts (174 MB, `data/raw/philippines/chirps_grid/`, gitignored).
