@@ -1,6 +1,6 @@
 """Layer 2 routes (specs/layer2-impact.md):
 
-- GET /api/options: the provinces and crops the front end can offer.
+- GET /api/options: the provinces, crops and replay events (Layer 3) the front end can offer.
 - GET /api/map: the dryness map views for every forecast quarter.
 - GET /api/impact?province=...&crop=...: rainfall and yield change for one province and crop.
 - GET /api/shapes: the 88 map shapes as one GeoJSON FeatureCollection, built once and kept in memory.
@@ -19,6 +19,7 @@ from app.layer2 import municipal_map, shapes
 from app.layer2.features import load_lookup
 from app.layer2.impact import CROP_TYPES, load_impact, province_names
 from app.layer2.map_output import load_map_views
+from app.simulation.simulate import REPLAY_EVENTS
 
 router = APIRouter()
 
@@ -35,7 +36,8 @@ def missing_file(missing: FileNotFoundError) -> HTTPException:
 
 @router.get("/api/options")
 def get_options() -> dict:
-    return {"provinces": province_names(load_lookup()), "crops": CROP_TYPES}
+    return {"provinces": province_names(load_lookup()), "crops": CROP_TYPES,
+            "replay_events": [{"key": key, "label": label} for key, label in REPLAY_EVENTS.items()]}
 
 
 @router.get("/api/map")

@@ -24,8 +24,10 @@ from app.layer2.features import (
     crop_pcodes,
     load_lookup,
     normal_yield,
+    oni_with_previous,
 )
 from app.layer2.map_output import (
+    PAST_EVENTS,
     combined_oni,
     dryness_colour,
     forecast_quarters,
@@ -70,24 +72,19 @@ def cell_normals(crops: pd.DataFrame, province: str, crop: str, quarters: pd.Dat
     return {(int(r.year), int(r.quarter)): r.normal for r in cell.itertuples()}
 
 
-def province_impact(province: str, crop: str, enso: pd.DataFrame, forecast_series: list[dict],
-                    rain: pd.DataFrame, crops: pd.DataFrame, lookup: pd.DataFrame,
-                    rain_model, yield_model) -> list[dict]:
-    """One entry per forecast quarter for the chosen province and crop."""
-    pcode = crop_pcodes(lookup).set_index("crop_name").loc[province, "rain_pcode"]
-    quarters = forecast_quarters(enso, combined_oni(enso, forecast_series))
-    predicted = predicted_rain(quarters, [pcode], rain_model)
-    observed = rain[rain["pcode"] == pcode]
-    normals = cell_normals(crops, province, crop, quarters)
+def impact_entries(quarter_rows: pd.DataFrame, observed: pd.DataFrame, normals: dict, yield_model) -> list[dict]:
+    """One entry per row of `quarter_rows` (year, quarter, oni, oni_prev, rain_pct), in its order.
 
+    `observed` is the province's observed rainfall, used for last quarter's rain when it exists.
+    """
     result = []
-    for q in predicted.itertuples():
+    for q in quarter_rows.itertuples():
         rain_pct = float(q.rain_pct)
         entry = {
             "quarter": f"{q.year} Q{q.quarter}",
             "oni": round(float(q.oni), 2),
             "oni_prev": round(float(q.oni_prev), 2),
-            "rain_pct": round(rain_pct, 1),
+            "rain_pct": None if pd.isna(rain_pct) else round(rain_pct, 1),
             "colour": dryness_colour(round(rain_pct, 1)),
             "enough_data": False,
             "yield_change_pct": None,
@@ -95,10 +92,15 @@ def province_impact(province: str, crop: str, enso: pd.DataFrame, forecast_serie
             "predicted_yield_t_per_ha": None,
         }
         normal = normals.get((int(q.year), int(q.quarter)))
-        if normal is not None and not pd.isna(normal) and normal > 0:
+        if normal is None or pd.isna(normal) or normal <= 0 or pd.isna(rain_pct):
+            result.append(entry)
+            continue
+        rain_prev = last_quarter_rain(observed, quarter_rows, int(q.year), int(q.quarter))
+        # XGBoost accepts a missing rain % silently, so a quarter without rain is never predicted.
+        if not pd.isna(rain_prev):
             inputs = pd.DataFrame([{
                 "rain_pct": rain_pct,  # unrounded: rounding is only for display
-                "rain_pct_prev": last_quarter_rain(observed, predicted, int(q.year), int(q.quarter)),
+                "rain_pct_prev": rain_prev,
                 "oni": float(q.oni), "oni_prev": float(q.oni_prev),
             }])
             change = float(pd.Series(yield_model.predict(inputs)).clip(-100, 100).iloc[0])  # as in training
@@ -110,6 +112,32 @@ def province_impact(province: str, crop: str, enso: pd.DataFrame, forecast_serie
             })
         result.append(entry)
     return result
+
+
+def province_impact(province: str, crop: str, enso: pd.DataFrame, forecast_series: list[dict],
+                    rain: pd.DataFrame, crops: pd.DataFrame, lookup: pd.DataFrame,
+                    rain_model, yield_model) -> list[dict]:
+    """One entry per forecast quarter for the chosen province and crop."""
+    pcode = crop_pcodes(lookup).set_index("crop_name").loc[province, "rain_pcode"]
+    quarters = forecast_quarters(enso, combined_oni(enso, forecast_series))
+    predicted = predicted_rain(quarters, [pcode], rain_model)
+    observed = rain[rain["pcode"] == pcode]
+    return impact_entries(predicted, observed, cell_normals(crops, province, crop, quarters), yield_model)
+
+
+def replay_impact(province: str, crop: str, event: str, enso: pd.DataFrame, rain: pd.DataFrame,
+                  crops: pd.DataFrame, lookup: pd.DataFrame, yield_model) -> list[dict]:
+    """One entry per quarter of a past event (PAST_EVENTS), from observed rain and ONI, in time order."""
+    pcode = crop_pcodes(lookup).set_index("crop_name").loc[province, "rain_pcode"]
+    quarters = pd.DataFrame(sorted((year, quarter) for quarter, year in PAST_EVENTS[event].items()),
+                            columns=["year", "quarter"])
+    quarters = quarters.merge(oni_with_previous(enso), on=["year", "quarter"], how="left")
+    if quarters[["oni", "oni_prev"]].isna().any().any():
+        raise ValueError(f"Replay quarters need observed ONI for this and last quarter:\n{quarters}")
+    observed = rain[rain["pcode"] == pcode]
+    rows = quarters.merge(observed[["year", "quarter", RAIN_TARGET]], on=["year", "quarter"], how="left")
+    rows = rows.rename(columns={RAIN_TARGET: "rain_pct"})
+    return impact_entries(rows, observed, cell_normals(crops, province, crop, quarters), yield_model)
 
 
 def load_impact(province: str, crop: str) -> dict:

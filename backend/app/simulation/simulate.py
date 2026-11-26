@@ -26,7 +26,8 @@ from app.layer1_forecast import train as layer1_train
 from app.layer1_forecast.models import load_enso_monthly, load_era5_monthly
 from app.layer2 import train as layer2_train
 from app.layer2.features import load_lookup
-from app.layer2.impact import province_impact
+from app.layer2.impact import province_impact, replay_impact
+from app.layer2.map_output import PAST_EVENTS
 
 # Median yield change minus the Palay median in past El Nino quarters, in percentage points
 # (spec section 4). Grey (no rain data) has no gap.
@@ -47,6 +48,11 @@ IRRIGATION_GAIN = 3.6
 
 IRRIGATION_GAIN_NOTE = "estimated from two strong El Niños, not statistically firm"
 DISCLAIMER = "These are possible scenarios, not certain outcomes."
+# Past El Ninos the user can replay. Adding one is one line, if PAST_EVENTS has its quarters.
+REPLAY_EVENTS = {"el_nino_2015_16": "El Niño 2015-16"}
+REPLAY_NOTE = ("This is a replay scenario using assumed policy effects, not proof that pumps work. "
+               "The +3.6-point irrigation gain was estimated mostly from 1998 Q1 and 2016 Q1, "
+               "so replaying 2016 Q1 gives that assumption back.")
 
 IRRIGATED = "Irrigated Palay"
 RAINFED = "Rainfed Palay"
@@ -65,12 +71,15 @@ def round_half_up(x: float) -> int:
     return math.floor(x + 0.5)
 
 
-def irrigated_share(crops: pd.DataFrame, province: str) -> tuple[float, int]:
+def irrigated_share(crops: pd.DataFrame, province: str, up_to_year: int | None = None) -> tuple[float, int]:
     """Irrigated palay area / total palay area in the latest complete year, and that year.
 
     A year counts when both Irrigated and Rainfed Palay have area in all 4 quarters and the
-    total is above 0. A province with no rainfed area gets 1.0.
+    total is above 0. A province with no rainfed area gets 1.0. `up_to_year` limits the years
+    (a replay uses the event's year).
     """
+    if up_to_year is not None:
+        crops = crops[crops["year"] <= up_to_year]
     rows = crops[(crops["province"] == province) & crops["crop_type"].isin([IRRIGATED, RAINFED])]
     rows = rows.dropna(subset=["area_ha"])
     quarters_with_area = rows.groupby(["year", "crop_type"])["quarter"].nunique().unstack()
@@ -228,19 +237,33 @@ def run(crop: str, impacts: dict, irrigated_share: float | None, irrigation: boo
 
 def simulate(province: str, crop: str, irrigation: bool, switching: bool,
              pump_share: float = PUMP_SHARE, switch_share: float = SWITCH_SHARE,
-             irrigation_gain: float = IRRIGATION_GAIN) -> dict:
-    """Simulation for one province and crop from the saved models and data files (loaded once)."""
+             irrigation_gain: float = IRRIGATION_GAIN, event: str | None = None) -> dict:
+    """Simulation for one province and crop from the saved models and data files (loaded once).
+
+    With `event` (a REPLAY_EVENTS key) it replays that past El Nino from observed rain and ONI
+    instead of using the live forecast.
+    """
     enso = load_enso_monthly()
-    forecast = forecast_from_bundle(layer1_train.load_model(layer1_train.SAVED_MODELS_DIR), enso,
-                                    load_era5_monthly())
-    rain_model = joblib.load(layer2_train.SAVED_MODELS_DIR / layer2_train.RAIN_MODEL_FILE)["model"]
     yield_model = joblib.load(layer2_train.SAVED_MODELS_DIR / layer2_train.YIELD_MODEL_FILE)["model"]
     rain, crops, lookup = load_rainfall(), load_crops(), load_lookup()
+    crop_types = dict.fromkeys([crop, IRRIGATED, RAINFED, "Corn"])  # keeps order, drops duplicates
 
-    impacts = {}
-    for crop_type in dict.fromkeys([crop, IRRIGATED, RAINFED, "Corn"]):  # keeps order, drops duplicates
-        impacts[crop_type] = province_impact(province, crop_type, enso, forecast["forecast_series"],
-                                             rain, crops, lookup, rain_model, yield_model)
-    share = irrigated_share(crops, province)[0] if crop == "Palay" else None
-    return {"province": province} | run(crop, impacts, share, irrigation, switching,
-                                        pump_share, switch_share, irrigation_gain)
+    if event is None:
+        forecast = forecast_from_bundle(layer1_train.load_model(layer1_train.SAVED_MODELS_DIR), enso,
+                                        load_era5_monthly())
+        rain_model = joblib.load(layer2_train.SAVED_MODELS_DIR / layer2_train.RAIN_MODEL_FILE)["model"]
+        impacts = {crop_type: province_impact(province, crop_type, enso, forecast["forecast_series"],
+                                              rain, crops, lookup, rain_model, yield_model)
+                   for crop_type in crop_types}
+        up_to_year = None
+    else:
+        impacts = {crop_type: replay_impact(province, crop_type, event, enso, rain, crops, lookup, yield_model)
+                   for crop_type in crop_types}
+        up_to_year = max(PAST_EVENTS[event].values())
+    share = irrigated_share(crops, province, up_to_year)[0] if crop == "Palay" else None
+    return {
+        "province": province,
+        "mode": "forecast" if event is None else "replay",
+        "event": None if event is None else REPLAY_EVENTS[event],
+        "replay_note": None if event is None else REPLAY_NOTE,
+    } | run(crop, impacts, share, irrigation, switching, pump_share, switch_share, irrigation_gain)

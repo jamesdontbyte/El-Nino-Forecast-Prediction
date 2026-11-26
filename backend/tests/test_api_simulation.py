@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app.simulation.simulate import IRRIGATION_GAIN_NOTE
+from app.simulation.simulate import IRRIGATION_GAIN_NOTE, REPLAY_NOTE
 from main import app
 from tests.test_api_layer2 import saved_models_exist
 
@@ -19,6 +19,7 @@ ANTIQUE = {"province": "Antique", "crop": "Palay", "irrigation": True, "switchin
     {"irrigation_gain": -1},
     {"irrigation_gain": 10.5},
     {"irrigation_gain": "nan"},
+    {"event": "el_nino_1997_98"},
 ])
 def test_bad_input_is_422(bad):
     # Validation runs before any file is read, so this needs no saved models.
@@ -42,6 +43,7 @@ def get_ok(params: dict) -> dict:
 def test_antique_palay_shape_and_policy_effect(real_files):
     result = get_ok(ANTIQUE)
     assert result["province"] == "Antique" and len(result["quarters"]) == 2
+    assert (result["mode"], result["event"], result["replay_note"]) == ("forecast", None, None)
     assert {"name": "irrigation_gain", "value": 3.6, "note": IRRIGATION_GAIN_NOTE} in result["assumptions"]
     q4, q1 = result["quarters"]
     assert q4["with"] == q4["without"] | {"pumps_given": 0, "switched": 0}  # already planted
@@ -51,6 +53,19 @@ def test_antique_palay_shape_and_policy_effect(real_files):
         assert q1["with"]["avg_yield_change_pct"] > q1["without"]["avg_yield_change_pct"]
     else:  # a pump adds nothing outside red quarters (layer3 spec)
         assert q1["with"]["avg_yield_change_pct"] == q1["without"]["avg_yield_change_pct"]
+
+
+def test_antique_replay_2015_16(real_files):
+    result = get_ok(ANTIQUE | {"event": "el_nino_2015_16"})
+    assert (result["mode"], result["event"], result["replay_note"]) == ("replay", "El Niño 2015-16", REPLAY_NOTE)
+    assert [q["quarter"] for q in result["quarters"]] == ["2015 Q3", "2015 Q4", "2016 Q1", "2016 Q2"]
+    first = result["quarters"][0]
+    assert first["with"] == first["without"] | {"pumps_given": 0, "switched": 0}  # already planted
+
+
+def test_options_lists_replay_events():
+    options = client.get("/api/options").json()
+    assert options["replay_events"] == [{"key": "el_nino_2015_16", "label": "El Niño 2015-16"}]
 
 
 def test_default_shares_match_explicit_values(real_files):

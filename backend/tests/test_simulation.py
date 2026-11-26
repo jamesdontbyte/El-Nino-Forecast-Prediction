@@ -1,6 +1,7 @@
 import pandas as pd
 import pytest
 
+from app.layer2.impact import replay_impact
 from app.simulation import simulate as sim
 
 NORMALS = {"Palay": 4.0, "Irrigated Palay": 5.0, "Rainfed Palay": 3.0, "Corn": 2.0,
@@ -131,6 +132,37 @@ def test_irrigated_share_latest_complete_year():
     assert sim.irrigated_share(crops[crops["year"] == 2023], "A") == (0.25, 2023)
     with pytest.raises(ValueError, match="B"):
         sim.irrigated_share(crops, "B")
+
+
+def test_irrigated_share_up_to_year():
+    rows = (crop_rows("A", "Irrigated Palay", 2016, [10, 10, 10, 10])
+            + crop_rows("A", "Rainfed Palay", 2016, [30, 30, 30, 30])
+            + crop_rows("A", "Irrigated Palay", 2017, [20, 20, 20, 20])
+            + crop_rows("A", "Rainfed Palay", 2017, [20, 20, 20, 20]))
+    assert sim.irrigated_share(pd.DataFrame(rows), "A", up_to_year=2016) == (0.25, 2016)
+
+
+class RainMinus100:
+    """Stand-in yield model: change = rain % - 100, so the test can see which rain was used."""
+    def predict(self, inputs: pd.DataFrame):
+        return inputs["rain_pct"] - 100
+
+
+def test_replay_uses_observed_rain_in_time_order():
+    months = pd.date_range("2015-01-01", "2016-06-01", freq="MS")
+    enso = pd.DataFrame({"date": months, "oni": 1.5})
+    rain = pd.DataFrame({"pcode": "P1", "year": [2015, 2015, 2015, 2015, 2016],  # 2016 Q2 has no rain
+                         "quarter": [1, 2, 3, 4, 1], "rain_pct_of_normal": [90.0, 80.0, 70.0, 60.0, 30.0]})
+    crops = pd.DataFrame([{"crop_type": "Palay", "province": "A", "year": y, "quarter": q, "yield_t_per_ha": 4.0}
+                          for y in range(2004, 2017) for q in range(1, 5)])
+    lookup = pd.DataFrame({"crop_name": ["A"], "rain_pcode": ["P1"]})
+
+    entries = replay_impact("A", "Palay", "el_nino_2015_16", enso, rain, crops, lookup, RainMinus100())
+    assert [e["quarter"] for e in entries] == ["2015 Q3", "2015 Q4", "2016 Q1", "2016 Q2"]
+    assert [e["rain_pct"] for e in entries] == [70.0, 60.0, 30.0, None]
+    assert [e["yield_change_pct"] for e in entries[:3]] == [-30.0, -40.0, -70.0]
+    assert entries[2]["colour"] == "red"
+    assert entries[3]["enough_data"] is False and entries[3]["colour"] == "grey"
 
 
 def test_gain_note_in_assumptions():

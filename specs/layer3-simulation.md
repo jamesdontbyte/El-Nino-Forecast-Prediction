@@ -1,6 +1,6 @@
 # Layer 3 Spec: Policy Simulation
 
-**Status:** draft. The policies, units, agents, timing, the two policy shares and the irrigation gain (assumptions with defaults the user can change) are decided. The crop gap table (section 4) is approved. The irrigated share rule and the irrigation gain rules are decided. Policies act in every forecast quarter after the first (built). Also decided (not built yet): the user may replay "El Niño 2015-16" (section 11).
+**Status:** draft. The policies, units, agents, timing, the two policy shares and the irrigation gain (assumptions with defaults the user can change) are decided. The crop gap table (section 4) is approved. The irrigated share rule and the irrigation gain rules are decided. Policies act in every forecast quarter after the first (built). The replay of "El Niño 2015-16" is built in the back end; its front end is not built yet (section 11).
 
 ## 1. Purpose
 
@@ -175,10 +175,12 @@ Palay and corn t/ha are never averaged together. Only the yield change % is aver
 
 Built.
 
-- `backend/app/simulation/__init__.py`, `backend/app/simulation/simulate.py`: farmers, local government, the crop gap table, and the run.
+- `backend/app/simulation/__init__.py`, `backend/app/simulation/simulate.py`: farmers, local government, the crop gap table, the run, and the replay events (`REPLAY_EVENTS`, `REPLAY_NOTE`).
+- `backend/app/layer2/impact.py`: `impact_entries` builds the Layer 2 entries for both modes; `replay_impact` gives them for a past event from observed rain and ONI.
 - `backend/app/api/simulation.py`: the route.
-- `backend/tests/test_simulation.py`: rule tests with hand-made Layer 2 inputs, so no data files are needed.
-- `backend/tests/test_api_simulation.py`: 422 on bad input (province, crop, shares outside 0 to 1, gain outside 0 to 10) and the response shape, including the irrigation gain note. Skips when the saved models are missing, like `backend/tests/test_api_layer2.py`.
+- `backend/app/api/layer2.py`: `/api/options` lists the replay events.
+- `backend/tests/test_simulation.py`: rule tests with hand-made Layer 2 inputs, plus the replay builder and `irrigated_share(up_to_year=...)` on hand-made tables, so no data files are needed.
+- `backend/tests/test_api_simulation.py`: 422 on bad input (province, crop, shares outside 0 to 1, gain outside 0 to 10, unknown event) and the response shape, including the irrigation gain note, the replay fields and `replay_events` in `/api/options`. Skips when the saved models are missing, like `backend/tests/test_api_layer2.py`.
 
 ## 8. Done When
 
@@ -213,7 +215,7 @@ Built.
 
 - Policy timing (decided, built): the rule is "every forecast quarter after the first" (section 3).
 
-## 11. Replay of a past El Niño (decided, status: planned, not built yet)
+## 11. Replay of a past El Niño (decided, status: back end built, front end not built yet)
 
 **What it is:** the user may pick a named past event instead of the live forecast. The only choice now is "El Niño 2015-16" (key `el_nino_2015_16`). It is not a free year. It is built so another event can be added later with one entry, but no other event is added now.
 
@@ -244,11 +246,27 @@ Built.
 
 **Required wording (decided):** the replay output and the front end must say clearly that this is a scenario using assumed policy effects, that the +3.6 irrigation gain comes mostly from 1998 Q1 and 2016 Q1, and that it is not proof that pumps work. Proposed text for the `replay_note` field: "This is a replay scenario using assumed policy effects, not proof that pumps work. The +3.6-point irrigation gain was estimated mostly from 1998 Q1 and 2016 Q1, so replaying 2016 Q1 gives that assumption back."
 
-**API (planned):**
+**API (built):**
 
-- `GET /api/simulate` gets an optional `event` query parameter. The default is none, which means the live forecast. An unknown event gives 422.
-- `/api/options` gains `replay_events`: a list of `{key, label}`.
-- The response gains `mode` ("forecast" or "replay"), `event` (the label, or null) and `replay_note` (null in forecast mode).
+- `GET /api/simulate` has an optional `event` query parameter (a key of `REPLAY_EVENTS` in `simulate.py`). The default is none, which means the live forecast. An unknown event gives 422.
+- `/api/options` has `replay_events`: a list of `{key, label}`, now `[{"key": "el_nino_2015_16", "label": "El Niño 2015-16"}]`.
+- The response has `mode` ("forecast" or "replay"), `event` (the label, or null) and `replay_note` (null in forecast mode). The rest of the response is the same as in forecast mode, with the 4 event quarters.
+- Replay does not use the Layer 1 forecast or the rain model. A quarter with no observed rain (this or last quarter) or no normal has `enough_data` false; with no rain its colour is grey.
+
+**Demo numbers (Palay, both policies, default assumptions, built code):**
+
+| Province | Irrigated share (year) | Quarter | Rain % | Colour | Without | With | Pumps | Switched |
+|---|---|---|---|---|---|---|---|---|
+| Antique | 0.577 (2016) | 2015 Q3 | 83.8 | green | -1.5 | -1.5 | 0 | 0 |
+| | | 2015 Q4 | 50.7 | yellow | -2.9 | -2.9 | 8 | 0 |
+| | | 2016 Q1 | 33.8 | red | -6.4 | -6.1 | 8 | 4 |
+| | | 2016 Q2 | 89.9 | green | -7.0 | -7.0 | 8 | 0 |
+| Agusan del Sur | 0.480 (2016) | 2015 Q3 | 95.0 | green | -1.7 | -1.7 | 0 | 0 |
+| | | 2015 Q4 | 59.7 | yellow | -3.2 | -3.2 | 9 | 0 |
+| | | 2016 Q1 | 15.7 | red | -6.4 | -6.1 | 9 | 5 |
+| | | 2016 Q2 | 73.0 | yellow | -7.0 | -7.0 | 9 | 0 |
+
+"Without" and "With" are the average yield change % over all farmers. As expected, the policies change the result only in the red quarter (2016 Q1), by +0.3 points.
 
 **Front end (planned):** the Simulation page gets a choice between the live forecast and "El Niño 2015-16". It shows the replay note clearly when replay is chosen.
 
