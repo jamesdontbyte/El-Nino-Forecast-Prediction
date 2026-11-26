@@ -5,6 +5,7 @@ Order (so the test years cannot influence the choice):
 2. Choose the model with the lowest mean validation RMSE across leads 1 to 6.
 3. Score every model once on the test years (fitted on 1950 to 2016).
 4. Refit the chosen model on all rows with known targets and save it.
+5. Fit the chosen model once per hindcast year, on ONI up to March of that year, and save those too.
 
 Run from backend/:  python -m app.layer1_forecast.train
 """
@@ -30,6 +31,25 @@ from app.layer1_forecast.labels import find_events
 SAVED_MODELS_DIR = Path(__file__).resolve().parents[1] / "saved_models"
 MODEL_FILE = "oni_forecast.joblib"
 METADATA_FILE = "oni_forecast.json"
+HINDCAST_FIRST_YEAR = 1960
+HINDCAST_ANCHOR_MONTH = 3  # March
+
+
+def hindcast_anchor(year: int) -> pd.Timestamp:
+    return pd.Timestamp(year=year, month=HINDCAST_ANCHOR_MONTH, day=1)
+
+
+def fit_hindcast_models(table: pd.DataFrame, model_name: str) -> dict[int, dict]:
+    """One set of per-lead models per hindcast year, fitted only on ONI up to that year's anchor."""
+    last_year = table["date"].max().year - 1
+    hindcast_models = {}
+    for year in range(HINDCAST_FIRST_YEAR, last_year + 1):
+        # Cutting the table at the anchor makes every target after it unknown, and fit_per_lead drops those rows.
+        frame = build_features(table[table["date"] <= hindcast_anchor(year)])
+        if frame[f"target_lead{max(LEADS)}"].isna().all():
+            continue  # too little data before the anchor to fit every lead
+        hindcast_models[year] = models.fit_per_lead(models.REGRESSORS[model_name], frame)
+    return hindcast_models
 
 
 def choose_best(validation_regression: pd.DataFrame) -> str:
@@ -191,7 +211,10 @@ def main() -> None:
         "lag_columns": LAG_COLUMNS,
         "leads": LEADS,
         "newest_oni_month": newest_month,
+        "hindcast_models": fit_hindcast_models(table, best),
+        "hindcast_anchor_month": HINDCAST_ANCHOR_MONTH,
     }
+    hindcast_years = sorted(bundle["hindcast_models"])
     metadata = {
         "model_name": best,
         "chosen_by": "lowest mean validation RMSE across leads 1 to 6 (validation 2009 to 2016)",
@@ -202,6 +225,11 @@ def main() -> None:
         "test_rmse_by_lead": _per_lead(test_regression, best, "rmse"),
         "final_fit": f"all anchor months with known targets, 1950-12 to {newest_month} data",
         "newest_oni_month": newest_month,
+        "hindcast": {
+            "years": f"{hindcast_years[0]} to {hindcast_years[-1]}",
+            "anchor_month": HINDCAST_ANCHOR_MONTH,
+            "rule": "fitted only on ONI up to March of the target year",
+        },
         "created": date.today().isoformat(),
     }
     save_model(bundle, metadata)

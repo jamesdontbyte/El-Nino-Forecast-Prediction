@@ -107,3 +107,31 @@ def test_event_scores_uses_forecast_months_past_the_newest_observation():
     events = train.event_scores(observed, predictions, first_test_month="2000-01-01")
     assert events.iloc[0]["detected"]
     assert events.iloc[0]["start_error_months"] == 2
+
+
+def test_hindcast_models_ignore_data_after_their_anchor():
+    t = np.arange(240)  # 1950-01 to 1969-12
+    table = make_table(2.0 * np.sin(2 * np.pi * t / 40), start="1950-01")
+    before = train.fit_hindcast_models(table, "linear_regression")
+
+    changed = table.copy()
+    after_anchor = changed["date"] > train.hindcast_anchor(1962)
+    changed.loc[after_anchor, "oni"] = 5.0
+    after = train.fit_hindcast_models(changed, "linear_regression")
+
+    sample = build_features(table)[LAG_COLUMNS].iloc[:5]
+    for lead in LEADS:
+        assert after[1962][lead].predict(sample) == pytest.approx(before[1962][lead].predict(sample))
+    assert after[1963][1].predict(sample) != pytest.approx(before[1963][1].predict(sample))
+
+
+def test_hindcast_years_run_to_the_year_before_the_newest_month():
+    t = np.arange(240)  # 1950-01 to 1969-12
+    table = make_table(2.0 * np.sin(2 * np.pi * t / 40), start="1950-01")
+    assert sorted(train.fit_hindcast_models(table, "linear_regression")) == list(range(1960, 1969))
+
+
+def test_hindcast_year_with_too_little_data_is_skipped():
+    t = np.arange(60)  # 1959-06 to 1964-05: March 1960 has fewer than 12 months behind it
+    table = make_table(2.0 * np.sin(2 * np.pi * t / 40), start="1959-06")
+    assert sorted(train.fit_hindcast_models(table, "linear_regression")) == [1961, 1962, 1963]
