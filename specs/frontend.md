@@ -1,6 +1,6 @@
 # Front End Plan
 
-**Status:** approved plan, being built. Progress is tracked in `specs/tasks-frontend.md`.
+**Status:** built (sections 1 to 7 of `specs/tasks-frontend.md` are done). The map upgrade (section 8 there) is in progress.
 
 ## 1. Stack
 
@@ -56,8 +56,8 @@ The fetch helper in `api.ts` throws the back end's `detail` text on any non-2xx 
   - Controls: quarter (2026 Q4 / 2027 Q1) and view (`prediction`, `normal`, `el_nino_2015_16`, `el_nino_2023_24`).
   - Colour each shape from a lookup `map_psgc -> colour` (green, yellow, red, grey). The map loads and is coloured even before a choice. The chosen province gets a thick outline once one is picked.
   - Colour names map to Tailwind's standard shades, written as hex because Leaflet needs colour values, not class names: green `#22c55e` (green-500), yellow `#facc15` (yellow-400), red `#dc2626` (red-600), grey `#9ca3af` (gray-400).
-  - Tooltip: the name from the GeoJSON `adm2_en` (the API's `province` is empty for NCR, City of Isabela and the Special Geographic Area) and `rain_pct`.
-  - react-leaflet's `<GeoJSON>` does not restyle on prop change, so give it `key={quarter + view}`.
+  - Tooltip: the name from the GeoJSON `adm2_en` (the API's `province` is `null` for the 6 no-crop shapes: the 4 NCR districts, City of Isabela and the Special Geographic Area) and `rain_pct`.
+  - react-leaflet's `<GeoJSON>` does not restyle on prop change, so it gets `key={quarter|view|province}`. The province is in the key so the thick outline moves to the newly chosen province.
   - The map container needs an explicit height (for example `h-[500px]`), or it is blank.
   - Caveat under the map: colours show only the central forecast, and the 2027 Q1 red count is likely exaggerated (see `specs/layer2-impact.md`, limitations).
   - **Map upgrade (2026-11-26; details in `specs/layer2-impact.md`, section 11):** built: picking a province zooms the map to it (`ZoomToProvince` in `DrynessMap.tsx`, using react-leaflet's `useMap` and `fitBounds`); no choice shows the whole country. Planned, not built: then the map adds the 1,642 municipalities from new routes, each coloured by its own rainfall, with province borders from `/api/shapes` as a thin outline. Yield stays per province and is labelled "province estimate"; the cards' rain is labelled "province rainfall".
@@ -71,21 +71,21 @@ The fetch helper in `api.ts` throws the back end's `detail` text on any non-2xx 
 - `irrigated_share` can be null. Show it only when present.
 - Bottom: the `assumptions` list and the `disclaimer`.
 
-## 4. Back-end addition: GET /api/shapes
+## 4. Back-end addition: GET /api/shapes (built)
 
 The map output has colours by `map_psgc` but no geometry. The 88 province shapes are 18 GeoJSON files (5.4 MB) in `data/raw/philippines/regions/medres/`, which is gitignored.
 
-- New route `GET /api/shapes` returns one GeoJSON FeatureCollection of all 88 shapes.
-- Built once (on first request or at startup) and kept in memory, not rebuilt per request.
+- `GET /api/shapes` (`backend/app/layer2/shapes.py`) returns one GeoJSON FeatureCollection of all 88 shapes.
+- Built on the first request and kept in memory, not rebuilt per request.
 - Each feature keeps only two properties: `map_psgc` (the 10-digit string, `String(adm2_psgc)` padded to 10 digits with leading zeros, so it matches `/api/map`) and `name` (`adm2_en`). In the files, `adm2_psgc` is a number without the leading zero.
 - Coordinates are rounded to 3 decimals (about 110 m, not visible at province zoom).
 - Responses are gzipped with Starlette's built-in `GZipMiddleware` (no new dependency).
 - Measured size: 5.4 MB raw, 2.3 MB after rounding, about 455 KB rounded and gzipped.
 - Missing files give the same 503 as the other Layer 2 routes.
 - Test: 88 features, every `map_psgc` is 10 characters and matches the `/api/map` codes.
-- Spec update when built: add the route to `specs/layer2-impact.md`.
+- The route is listed in `specs/layer2-impact.md`, section 2.
 
-## 5. Build order
+## 5. Build order (done, kept as a record)
 
 1. Scaffold with Vite, add Tailwind and the proxy.
 2. `types.ts` and `api.ts`.

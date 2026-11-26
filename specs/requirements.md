@@ -24,7 +24,7 @@ The system forecasts El Niño conditions, estimates the effect on crops in a cho
 
 - **Back end:** Python with FastAPI, run with Uvicorn
 - **Front end:** React, TypeScript, Tailwind CSS, built with Vite. Plan in `specs/frontend.md`.
-- **Map:** Leaflet (react-leaflet) with OpenStreetMap tiles. Province shapes come from `GET /api/shapes` (planned), so the map works without the tiles.
+- **Map:** Leaflet (react-leaflet) with OpenStreetMap tiles. Province shapes come from `GET /api/shapes`, so the map works without the tiles.
 - **Data and ML:** pandas, NumPy, xarray, netCDF4, scikit-learn, XGBoost. TensorFlow or PyTorch only if the LSTM or CNN is added.
 - **Notebooks:** Jupyter, for experiments only. Not part of the running app.
 - **Rule:** all machine learning and data processing live in the back end. React only sends inputs and displays results.
