@@ -35,7 +35,7 @@ The system forecasts El Niño conditions, estimates the effect on crops in a cho
 - Crop (for example rice or corn)
 - Policy choices: irrigation support and crop switching (on or off), and optionally the pump share, switch share and irrigation gain (defaults 20%, 10% and +3.6 points)
 
-The user does not pick the forecast date, horizon, or model. The system works those out.
+The user does not pick the forecast date, horizon, or model. The system works those out. One exception: the forecast route takes an optional target year. A past year gives a hindcast (what the system would have forecast then, next to what happened), the current or next year gives the normal forecast, and a later year gives the historical average, labelled as an average, not a forecast. The system still picks the anchor month, horizon, and model. Details are in `specs/layer1-forecast.md`, section 12.
 
 ## 5. What the System Predicts
 
@@ -125,7 +125,8 @@ The buoy data ends in 1998, so it is useful for learning but does not count towa
 
 ## 9. Open Items
 
-- Confirm the final ERA5 variables and region box.
+- Confirm the final ERA5 variables and region box. The ERA5 feature plan (box-average anomalies added to the existing models, kept only if validation RMSE improves) is in `specs/layer1-forecast.md`, section 13.
+- Layer 1 target year: confirm the suggested values in `specs/layer1-forecast.md`, section 12.
 - Decide whether to add the Sentinel upgrade for the land view.
 - Layer 3 (details in `specs/layer3-simulation.md`): the policy list is decided (irrigation support and crop switching). The pump share (default 20%), switch share (default 10%) and irrigation gain (default +3.6 points, estimated from two strong El Niños, not statistically firm) are stated assumptions the user can change. The irrigated share rule and the crop gap table are decided. Open: what the policy timing becomes when the forecast quarters move.
 - Layer 2 (details in `specs/layer2-impact.md`): no open items left. Decided: what the "normal year" map shows, how the Layer 1 forecast becomes Layer 2 inputs (observed ONI months where available, Layer 1 forecast otherwise), the lag (the yield model uses this and last quarter's inputs), the algorithms (XGBoost for rainfall, the departure line for yield) and the API routes (`GET /api/options`, `GET /api/map`, `GET /api/impact`).
