@@ -69,7 +69,7 @@ Work top to bottom. Tick each box when done. Details are in specs/layer1-forecas
 - [x] Go through the "Done When" list in the layer1 spec.
 
 ## 11. Part A: optional target year (layer1 spec, section 12)
-- [ ] Confirm the values marked (suggested) in section 12.
+- [x] Confirm the section 12 values: anchor March, years 1960 to 2100, no front-end year input.
 - [ ] train.py: fit the chosen model once per hindcast year on rows whose B+6 is at or before that year's anchor (March of the target year), and save them in oni_forecast.joblib keyed by year. Update the metadata file. Test: no hindcast model uses data after its anchor.
 - [ ] forecast.py: `forecast_from_bundle` takes the ONI table and the models per lead, so the live forecast and the hindcast share one path. Check its callers (layer2 impact and map, simulation) still give the same result.
 - [ ] outputs.py: climatology rows (mean ONI, status shares, and event start share per calendar month) from full observed years. Tests.
@@ -77,11 +77,13 @@ Work top to bottom. Tick each box when done. Details are in specs/layer1-forecas
 - [ ] Run the checks and go through the "Done when" list in section 12.
 
 ## 12. Part B: ERA5 features (layer1 spec, section 13). Do not start until ERA5 is downloaded.
-- [ ] Confirm the ERA5 variables, box, months covered, and file size actually downloaded. Update section 13 if they differ.
+- [x] Confirm the ERA5 variables and boxes requested: SST, 10 m u and v wind, mean sea level pressure, total precipitation, 30°S to 30°N, two files (120°E to 180° and 180°W to 70°W).
+- [ ] Once downloaded: check the years, months, file size, and longitude convention of both files, and that their variables, years, and months match.
 - [ ] backend/app/data/load_era5.py: box averages (cos-latitude weighted), anomalies against the 1950 to 2008 monthly averages, save data/processed/era5_monthly.csv. Check for gaps.
 - [ ] features.py: join ERA5 on the month, add lag 1 and lag 3 of each ERA5 feature. Tests.
 - [ ] Compare every regression model with and without ERA5 on validation, on the same rows. Repeat once with ERA5 from 1979 as a check. Choose with the existing rule, then score the test period once more. Record the result in section 7.
-- [ ] If ERA5 is kept: train.py and the route use it, the route returns 503 when ERA5 does not reach month B, and the hindcast models use the same features.
+- [ ] Always: add `era5_used` to the response (false while ERA5 is not kept; absent in climatology).
+- [ ] If ERA5 is kept: train.py saves the ERA5 model and the best ONI-only model, each with its own validation RMSE. The route falls back to ONI only when ERA5 does not reach month B and sets `era5_used`. Hindcast models use the ERA5 features. Test the fallback.
 - [ ] Run the checks.
 
 ## Later (only after the above works)

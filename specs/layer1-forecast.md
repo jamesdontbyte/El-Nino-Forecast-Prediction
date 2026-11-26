@@ -88,7 +88,7 @@ All other columns are ignored for now.
 
 **Note:** NOAA moved its official ENSO monitoring to RONI in February 2026. We use ONI because it has a long history and the strength cutoffs were written for it. Explain this choice in the presentation.
 
-**ERA5 request (suggested):** sea surface temperature, 10 m wind (u and v), mean sea level pressure, and total precipitation. Pacific box about 30°S to 30°N and 120°E to 70°W. Monthly means, 1940 to the latest month. Confirm the real file size before downloading.
+**ERA5 request (confirmed):** sea surface temperature, 10 m wind (u and v), mean sea level pressure, and total precipitation, 30°S to 30°N, as two files: 120°E to 180° and 180°W to 70°W. Both files have the same variables, years, and months, and are joined on longitude (section 13). Monthly means.
 
 Build the ENSO-only pipeline first. Add ERA5 only after the baseline works.
 
@@ -170,7 +170,7 @@ Start and duration are derived from the forecast ONI series using the label rule
 
 ## 11. Open Items
 
-- Part A (section 12): confirm the values marked (suggested).
+- Part A (section 12): decided. Hindcast anchor March, years 1960 to 2100, no year input in the front end for now.
 - Part B (section 13): confirm which ERA5 variables and box were actually requested, once the download finishes.
 
 ## 12. Part A: Optional Target Year
@@ -181,9 +181,9 @@ Start and duration are derived from the forecast ONI series using the label rule
 
 | Mode | Years (now) | Rule | What it returns |
 | --- | --- | --- | --- |
-| `hindcast` | 1960 to 2025 (suggested first year) | year before B's year | What the system would have forecast at the time, next to what really happened |
+| `hindcast` | 1960 to 2025 | year before B's year | What the system would have forecast at the time, next to what really happened |
 | `forecast` | 2026 and 2027 | B's year to B+6's year | The normal forecast, unchanged |
-| `climatology` | 2028 to 2100 (suggested last year) | after B+6's year | The historical average for each month, labelled as an average, not a forecast |
+| `climatology` | 2028 to 2100 | after B+6's year | The historical average for each month, labelled as an average, not a forecast |
 
 Years outside 1960 to 2100 return 422 (FastAPI's "invalid input" error).
 
@@ -212,7 +212,7 @@ Absent means the key is not in the response, so the existing front-end types and
 
 **Hindcast mode:**
 
-- Anchor month: March of the target year (suggested). The forecast covers April to September, leads 1 to 6, the same as the live forecast. Most El Niño events start between April and June (1982, 1997, 2015, 2023), so this window shows whether the system would have seen the start coming. A December anchor would cover only January to June and miss most of the growth. Spring forecasts are known to be the hardest (the "spring predictability barrier"), so expect weaker skill than the live forecast's average.
+- Anchor month: March of the target year (decided). The forecast covers April to September, leads 1 to 6, the same as the live forecast. Most El Niño events start between April and June (1982, 1997, 2015, 2023), so this window shows whether the system would have seen the start coming. A December anchor would cover only January to June and miss most of the growth. Spring forecasts are known to be the hardest (the "spring predictability barrier"), so expect weaker skill than the live forecast's average.
 - Uses only ONI up to the anchor month. Events, start, duration, and strength are worked out from that cut table with the same rules as the live forecast (section 5).
 - Each `forecast_series` month also has `observed_oni`: what really happened, for comparison.
 - **No leakage:** the saved model was refitted on all data up to 2026, so it has already seen every past year. Using it would make hindcasts look better than they really are. Instead, `train.py` also fits the chosen model once per hindcast year, on rows whose furthest target (B+6) is at or before that year's anchor month, and saves these in the model file. The route still never trains on request (section 8).
@@ -222,7 +222,7 @@ Absent means the key is not in the response, so the existing front-end types and
 
 **Climatology mode:**
 
-- Built from observed ONI, all full years 1950 to the year before B (suggested; now 1950 to 2025).
+- Built from observed ONI, all full years 1950 to the year before B (now 1950 to 2025).
 - For each calendar month (January to December): `mean_oni`, and the share of years in El Niño, neutral, and La Niña status in that month (`el_nino_share`, `neutral_share`, `la_nina_share`, each 0 to 1).
 - Also `event_start_share`: the share of years in which an El Niño event (five-season rule) started in that calendar month. Summed over the 12 rows, it is the share of years with an event start.
 - ONI is an anomaly, so `mean_oni` is close to 0 in every month. The status shares are the useful part. This is why the label says "average, not a forecast".
@@ -232,17 +232,17 @@ Absent means the key is not in the response, so the existing front-end types and
 
 **Code reuse:** `forecast_from_bundle` gets the ONI table and the models per lead as inputs, so the live forecast and the hindcast share one code path. Its callers (`api/forecast.py`, `layer2/impact.py`, `layer2/map_output.py`, `simulation/simulate.py`) keep the same result.
 
-**Files:** `backend/app/api/forecast.py` (route, mode choice), `backend/app/layer1_forecast/outputs.py` (climatology rows), `backend/app/layer1_forecast/train.py` (hindcast models). Layer 2 and Layer 3 keep calling the forecast without `year`. The front end does not use `year` for now; it can be tried through FastAPI's `/docs` page (open question: add a year input to the Forecast page).
+**Files:** `backend/app/api/forecast.py` (route, mode choice), `backend/app/layer1_forecast/outputs.py` (climatology rows), `backend/app/layer1_forecast/train.py` (hindcast models). Layer 2 and Layer 3 keep calling the forecast without `year`. The front end does not use `year` for now; it can be tried through FastAPI's `/docs` page (decided: no year input in the front end for now).
 
 **Done when:** each mode returns the fields above, the hindcast models never use data after their anchor month (checked by a test), the route without `year` returns the same result as before, and tests cover the year limits and the mode boundaries.
 
 ## 13. Part B: ERA5 Pacific Features
 
-**Status:** spec only. The ERA5 files are still downloading. No ERA5 code until they are in `data/raw/era5/` and the variables and box below are confirmed.
+**Status:** spec only. The ERA5 files are still downloading. No ERA5 code until they are in `data/raw/era5/`. Variables and boxes are confirmed (section 4); the years covered and the file size are checked once the download finishes.
 
 **Goal:** add a few ERA5 Pacific features to the existing ONI models (linear regression, Random Forest, XGBoost) and keep them only if they lower the validation RMSE. Logistic regression is only a comparison model (section 5), so it stays on ONI only. The CNN on ERA5 maps stays a separate optional item.
 
-**Features (suggested):** box averages, one number per month each, turned into anomalies (the value minus that calendar month's average):
+**Features:** box averages, one number per month each, turned into anomalies (the value minus that calendar month's average):
 
 | Feature | ERA5 variable | Box |
 | --- | --- | --- |
@@ -252,14 +252,18 @@ Absent means the key is not in the response, so the existing front-end types and
 | `era5_tp_central` | total precipitation | Central equatorial Pacific: 5°S to 5°N, 170°E to 140°W |
 
 - **Anomaly base period:** the monthly averages use the train years only (1950 to 2008), so no later data leaks into the features.
-- **Warming trend (suggested fix):** the Pacific is warming, so a fixed 1950 to 2008 base makes the SST anomaly run warm in later years, while ONI uses moving base periods. `era5_sst_nino34` is therefore the Niño 3.4 average minus the 20°S to 20°N average over the whole box (a relative index, the same idea as NOAA's RONI). No trend line has to be fitted.
-- **Grid conventions:** ERA5 files from the Copernicus store usually use longitudes 0 to 360 and store latitude from north to south. So 170°W to 120°W is 190 to 240, and latitude is selected as `slice(5, -5)`. Check the file before selecting, or the selection comes back empty.
+- **Warming trend:** the Pacific is warming, so a fixed 1950 to 2008 base makes the SST anomaly run warm in later years, while ONI uses moving base periods. `era5_sst_nino34` is therefore the Niño 3.4 average minus the 20°S to 20°N average over the whole box (a relative index, the same idea as NOAA's RONI). No trend line has to be fitted.
+- **Grid conventions:** ERA5 files from the Copernicus store usually store latitude from north to south, so latitude is selected as `slice(5, -5)`. Longitude may be -180 to 180 or 0 to 360. Check the files before selecting, or the selection comes back empty.
+- **Joining the two files:** the west file (120°E to 180°) and the east file (180°W to 70°W) are joined on longitude. First convert both to 0 to 360 (180°W to 70°W becomes 180 to 290), then join them, so the Pacific is one grid from 120 to 290 with no break at the date line. If both files contain the 180° column, keep it once. Check that the variables, years, and months match before joining. The central rainfall box (170°E to 140°W) crosses the date line, so it needs the joined grid. In 0 to 360 the boxes are: Niño 3.4 190 to 240, western wind 120 to 180, Tahiti 208 to 213, Darwin 128 to 133, central rainfall 170 to 220.
 - **Data quality changes over time:** ERA5 wind and rainfall before 1979 (before satellites) are less reliable, and its SST source changes around 2007, near the train and validation boundary. Run the comparison once more with ERA5 starting in 1979 as a check, and drop `era5_tp_central` if it does not help.
 - **Lags:** each feature at lag 1 and lag 3, using the same anchor rule as ONI (section 6). Every feature is at or before B.
 - **Years:** 1950 onward, so the rows match the ONI rows. ERA5 starts in 1940; the extra years are not used.
 - **Processing:** `backend/app/data/load_era5.py` reads the NetCDF files with xarray, averages each box (weighted by cos(latitude), because grid cells shrink toward the poles), and saves `data/processed/era5_monthly.csv`. Raw and processed files stay gitignored.
 - **Join:** `features.py` joins ERA5 to the ONI table on the month. A month with ONI but no ERA5 is dropped from training.
-- **Live forecast:** ERA5 must reach month B. If it does not, the route returns 503 with a message to update ERA5 (suggested). It does not silently fall back to ONI only. Layer 2 and Layer 3 build on the same forecast, so they also return 503 until ERA5 is updated.
+- **Live forecast when ERA5 is behind (decided):** if ERA5 is kept but does not reach month B, the route falls back to the ONI-only forecast. It does not return an error. The response says which version ran in a new field, `era5_used` (true or false). This replaces the earlier suggestion of a 503 error, because a 503 would also stop Layer 2 and Layer 3, which build on the same forecast. With the fallback they keep working on the ONI-only forecast.
+- **What `train.py` saves when ERA5 is kept:** the chosen ERA5 model and the best ONI-only model (the current choice rule applied to the ONI-only scores), each with its own validation RMSE per lead for the band. `model_used` names the model that actually ran.
+- **`era5_used` in each mode:** present in the response without `year`, in `forecast` mode, and in `hindcast` mode. Absent in `climatology` (no model). If ERA5 is not kept, it is always false. Adding this key is the one change to the response without `year`; it does not break the existing front-end types.
+- **Hindcast:** past years always have ERA5, so hindcasts use the ERA5 version when ERA5 is kept.
 
 **Comparison (same split, same metrics):**
 
@@ -270,4 +274,4 @@ Absent means the key is not in the response, so the existing front-end types and
 
 **Size check:** confirm the real file size and the months covered before processing.
 
-**Done when:** `era5_monthly.csv` is built and checked (no gaps, anomalies near 0 on average in the train years), the comparison table shows every model with and without ERA5, the choice is written in section 7, and the API still returns every field.
+**Done when:** `era5_monthly.csv` is built and checked (no gaps, anomalies near 0 on average in the train years), the comparison table shows every model with and without ERA5, the choice is written in section 7, the API still returns every field plus `era5_used`, and a test shows the fallback to ONI only when ERA5 does not reach month B.

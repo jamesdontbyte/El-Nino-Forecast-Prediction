@@ -125,8 +125,7 @@ The buoy data ends in 1998, so it is useful for learning but does not count towa
 
 ## 9. Open Items
 
-- Confirm the final ERA5 variables and region box. The ERA5 feature plan (box-average anomalies added to the existing models, kept only if validation RMSE improves) is in `specs/layer1-forecast.md`, section 13.
-- Layer 1 target year: confirm the suggested values in `specs/layer1-forecast.md`, section 12.
+- ERA5 variables and boxes are confirmed (two files, 120°E to 180° and 180°W to 70°W, joined on longitude). The feature plan (box-average anomalies added to the existing models, kept only if validation RMSE improves, ONI-only fallback with an `era5_used` field) is in `specs/layer1-forecast.md`, section 13.
 - Decide whether to add the Sentinel upgrade for the land view.
 - Layer 3 (details in `specs/layer3-simulation.md`): the policy list is decided (irrigation support and crop switching). The pump share (default 20%), switch share (default 10%) and irrigation gain (default +3.6 points, estimated from two strong El Niños, not statistically firm) are stated assumptions the user can change. The irrigated share rule and the crop gap table are decided. Open: what the policy timing becomes when the forecast quarters move.
 - Layer 2 (details in `specs/layer2-impact.md`): no open items left. Decided: what the "normal year" map shows, how the Layer 1 forecast becomes Layer 2 inputs (observed ONI months where available, Layer 1 forecast otherwise), the lag (the yield model uses this and last quarter's inputs), the algorithms (XGBoost for rainfall, the departure line for yield) and the API routes (`GET /api/options`, `GET /api/map`, `GET /api/impact`).
