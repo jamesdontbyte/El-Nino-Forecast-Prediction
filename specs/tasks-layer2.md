@@ -26,3 +26,14 @@
 - [x] Baseline model, then other models, on the same split.
 - [x] Map output (colours per province).
 - [x] API route for Layer 2.
+
+## Map upgrade (specs/layer2-impact.md, section 11)
+Commit and push after each task.
+- [x] Check the municipal shapes: 88 files, 1,642 shapes, every province shape covered, codes match the lookup.
+- [ ] Decide the open items in section 10 (rainfall source, prediction view, normal period).
+- [ ] Step 1: zoom to the chosen province (front end, see tasks-frontend.md).
+- [ ] Step 2a: download the CHIRPS grid for the Philippines (data/ is gitignored).
+- [ ] Step 2b: preprocessing script: municipal quarterly rain % to data/processed/, with the province check.
+- [ ] Step 2c: new routes `/api/municipal_shapes` and `/api/municipal_map`, with new tests (1,642 shapes, codes match). Existing routes and tests unchanged.
+- [ ] Step 2d: front end colours municipalities, yield labelled "province estimate", card rain labelled "province rainfall".
+- [ ] Step 3 (optional): cropland mask. Source to be decided.

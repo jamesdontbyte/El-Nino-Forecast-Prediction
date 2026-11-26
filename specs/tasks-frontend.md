@@ -54,3 +54,11 @@ Work top to bottom. Tick each box when done. Details are in specs/frontend.md.
 - [x] Front end from frontend/: `npx tsc -b`, `npm run lint`, `npm run build`.
 - [x] Back end: ruff and pytest from backend/.
 - [x] Start the server, /health returns ok, and click through all 3 tabs in the dev server.
+
+## 8. Map upgrade (specs/layer2-impact.md, section 11)
+- [ ] Zoom: when a province is picked, fit the map to its shapes (both shapes for Maguindanao and Davao del Sur). Whole country when none is picked.
+- [ ] Municipal colours from `/api/municipal_map` and `/api/municipal_shapes`, province borders from `/api/shapes` as a thin outline, chosen province outlined thick. Zoom component outside the keyed `<GeoJSON>`.
+- [ ] Tooltip: municipality name, its rain %, and the province name.
+- [ ] Municipal layer keyed on quarter + view only; province outline layer keyed on province. `preferCanvas` on `MapContainer`.
+- [ ] Label yield as "province estimate" on the Impact cards and the Simulation page, card rain as "province rainfall", and say so in the map note.
+- [ ] Checks as in section 7.

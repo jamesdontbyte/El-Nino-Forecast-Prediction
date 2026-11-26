@@ -60,6 +60,7 @@ The fetch helper in `api.ts` throws the back end's `detail` text on any non-2xx 
   - react-leaflet's `<GeoJSON>` does not restyle on prop change, so give it `key={quarter + view}`.
   - The map container needs an explicit height (for example `h-[500px]`), or it is blank.
   - Caveat under the map: colours show only the central forecast, and the 2027 Q1 red count is likely exaggerated (see `specs/layer2-impact.md`, limitations).
+  - **Map upgrade (planned 2026-11-26, not built; details in `specs/layer2-impact.md`, section 11):** picking a province zooms the map to it (a small child component using react-leaflet's `useMap` and `fitBounds`). Then the map adds the 1,642 municipalities from new routes, each coloured by its own rainfall, with province borders from `/api/shapes` as a thin outline. Yield stays per province and is labelled "province estimate"; the cards' rain is labelled "province rainfall".
 - **OSM tiles:** an OpenStreetMap tile layer as the background, with the attribution "© OpenStreetMap contributors" linking to https://www.openstreetmap.org/copyright. The coloured provinces come from `/api/shapes`, not the tiles, so the map still works offline. Without internet, only the background is missing.
 
 ### SimulationPage (Layer 3)

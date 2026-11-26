@@ -1,6 +1,6 @@
 # Layer 2 Spec: Impact and Land View
 
-**Status:** draft. The data, cleaning rules, normal yield, colours and models are decided (evidence in notebooks 03, 04 and 05). The map output and the API routes are decided. Nothing is open.
+**Status:** draft. The data, cleaning rules, normal yield, colours and models are decided (evidence in notebooks 03, 04 and 05). The map output and the API routes are decided. Reopened on 2026-11-26 for the map upgrade in section 11 (zoom to province, municipal colours, optional cropland mask). Its open items are in section 10.
 
 ## 1. Purpose
 
@@ -50,7 +50,7 @@ Yield change is measured against that province's own normal, not against other p
 
 - A flat 2D province map with a toggle between four views (below).
 - Colours show dryness: green healthy, yellow stressed, red severe.
-- Provinces are coloured as whole shapes. There is no 25 km grid.
+- Provinces are coloured as whole shapes. There is no 25 km grid. **Being changed (2026-11-26):** the map will colour each municipality by its own rainfall instead (section 11). Why: a province colour hides dry and wet parts inside one province, and municipal shapes are now available. The province colour stays in `/api/impact` and Layer 3, because the yield model and the crop gap table work per province.
 - **Forecast quarters (decided):** the quarters fully covered by observed plus forecast ONI. Now: 2026 Q4 and 2027 Q1 (ONI is observed to September 2026, forecast October 2026 to March 2027). Labels look like "2026 Q4".
 - **Four views (decided):** for each forecast quarter, each view lists all 88 map shapes with `map_psgc`, `province` (the lookup's `crop_name`), `rain_pct` (rounded to 1 decimal) and colour.
   - `prediction`: rain % predicted by the saved rainfall model (XGBoost) from the quarter's ONI.
@@ -94,6 +94,18 @@ All files are in `data/raw/philippines/`. The data folder is gitignored.
 
 - 18 files (one per region) with 88 shapes: 82 with geo_level "Prov", 4 NCR districts ("Dist"), City of Isabela, and "Special Geographic Area" (these last two have no geo_level).
 - Properties: `adm1_psgc`, `adm2_psgc` (10-digit PSGC code), and `adm2_en` (name).
+
+**Municipal shapes (checked 2026-11-26):** `Municipality/municities-provdist-*.json`, from the same philippines-json-maps project.
+
+- 88 files, one per province shape. The number in the file name is that shape's `adm2_psgc`, and all 88 province shapes (all of `map_psgc` in the lookup table) have exactly one file. So the existing lookup links every municipality to its crop province and CHIRPS PCODE with no new matching table.
+- 1,642 shapes: 1,493 "Mun" and 149 "City". 1 to 53 per file (median 17). 1,339 Polygon and 303 MultiPolygon.
+- Properties: `adm1_psgc`, `adm2_psgc`, `adm3_psgc` (unique, 1,642 codes), `adm3_en` (name, UTF-8, no repeated name inside a province), `geo_level`, `area_km2`, and a few length and area fields.
+- Use the file's `adm2_psgc` for the province, not digits of `adm3_psgc`: 34 highly urbanized cities (for example City of Davao, City of Cebu, the NCR cities) have a different province part in their own code.
+- No-crop areas: the 4 NCR files have 17 cities and Pateros. City of Isabela is 1 shape. The Special Geographic Area has 8.
+- Sizes: area from 0 km² (Kalayaan) up, median 112 km². 125 municipalities are smaller than one CHIRPS pixel (about 31 km²) and 729 are under 100 km².
+- 7.4 MB raw. About 3.1 MB with coordinates rounded to 3 decimals, about 620 KB gzipped (province shapes: 460 KB).
+
+**No municipal rainfall yet:** `phl-rainfall-subnat-full.csv` has only adm_level 1 (17 regions) and 2 (81 provinces). Municipal colours need the CHIRPS grid itself (section 11).
 
 ERA5 is not used in Layer 2. It is only for Layer 1. Sentinel NDVI stays optional.
 
@@ -246,4 +258,41 @@ Planned.
 
 ## 10. Open Items
 
-None for Layer 2.
+For the map upgrade in section 11. Waiting for the user's decision:
+
+1. **Municipal rainfall source:** download CHIRPS v2.0 monthly 0.05° grids (1981 to now, cut to the Philippines) from the Climate Hazards Center. The exact download route and file size are not checked yet.
+2. **Prediction view per municipality:** the rainfall model predicts per province. Options: (a) the prediction view stays coloured per province, labelled as such, and only the three observed views are municipal; (b) retrain the rainfall model on municipal rows, which reopens the model choice in sections 6 and 7; (c) province prediction scaled by each municipality's past El Niño ratio to its province (a rule, not ML, and noisy with about 10 El Niño quarters per calendar quarter). Proposed: (a). (b) mostly relearns the province, because neighbouring municipalities share pixels. (c) would only be kept if it beats (a) on validation 2009-2016.
+3. **Normal period** for the municipal rain %: must match the CSV's `rfh_avg`. The period is not confirmed (to look up in the HDX dataset notes).
+4. **Cropland source** (step 3, optional, later).
+
+## 11. Map Upgrade (planned 2026-11-26, not built)
+
+Three steps, each its own task, committed and pushed separately.
+
+**Step 1, zoom to province:** when the user picks a province, the map fits its bounds.
+
+- Front end only. Merged provinces zoom to all their shapes (Maguindanao: 2 shapes; Davao del Sur: 2 shapes), found through `/api/map`'s `province` field.
+- No choice: the map stays at the whole-country view.
+
+**Step 2, municipal colours:**
+
+- Each of the 1,642 municipalities gets its own rain % of normal and colour, same rule as provinces (quarter total over quarter normal, section 6) and the same PAGASA bands on the rounded value. Missing rainfall is grey.
+- Rainfall per municipality: take the CHIRPS pixels whose centre is inside the shape, average their rain and their normal separately, then divide (ratio of sums, as in section 6; averaging pixel percents would soften dry quarters). Sea pixels have no value (-9999 or NaN) and are masked first.
+- If no pixel centre is inside (small municipalities), use the nearest pixel that has a value, measured from a point inside the shape (a centroid can fall at sea for odd shapes and MultiPolygons). Beyond a distance cap it is grey (cap to be set, about one pixel). Kalayaan (0 km², far from Palawan) will be grey.
+- Reading the grid uses xarray and netCDF4 on a Philippines-only cut. Point-in-shape uses matplotlib's `Path`. All three are already installed, so no new dependency.
+- Monthly grids are enough, because quarters are whole months.
+- The municipal normal must use the same years as the CSV's `rfh_avg`. That period is not confirmed yet, so it is an open item. With a different period, municipal and province values would disagree for no real reason.
+- Prelim and final: use final grids where they exist. Which latest months are prelim gets written down when downloaded. The "last quarter's rain" rule (section 2) keeps using the province CSV.
+- This is a one-off preprocessing script writing a quarterly table to `data/processed/` (gitignored). The API only reads it.
+- Check, before trusting any municipal number: rebuild the 81 province quarter totals from the grid (rain and normal) and compare them with the CSV's summed `rfh` and `rfh_avg`. Group by CHIRPS unit (`rain_pcode` in the lookup, so old boundaries like Maguindanao 087 and NCR count as one unit). This tests the normal years, the pixel rule and the CHIRPS version at once. Also compare pixel counts with `n_pixels` (183 for Nueva Ecija). The tolerance is written down before running the check.
+- The three observed views (`normal`, `el_nino_2015_16`, `el_nino_2023_24`) work per municipality with the same years as now. Nothing is trained, so there is no new leak. If the normal period includes test years, that is the same known leak as in the limitations.
+- The `normal` view's year is picked only from years present in both the CSV and the grid, so a newer neutral quarter that is missing from the grid does not show grey.
+- **New routes, existing ones unchanged:** `GET /api/municipal_shapes` (1,642 shapes, about 620 KB gzipped) and `GET /api/municipal_map` (one row per municipality per view). `/api/shapes` and `/api/map` stay as they are, so their tests and the province outline keep working. First map load is about 1.1 MB gzipped in total. Route names are a proposal.
+- No-crop areas: NCR municipalities are coloured by rainfall like any other. City of Isabela and the Special Geographic Area get colours too, because the grid covers them. This changes the "grey" rule in section 2 for the municipal map only.
+- Unchanged: `/api/impact` keeps the province rain % and colour, and Layer 3 keeps using them (Layer 3 does not read the map output).
+- **Yield stays per province:** PSA crop data is per province only. Wherever yield is shown, it is labelled "province estimate". The Impact cards' rain % and colour are labelled "province rainfall", so they are not confused with a municipality's colour on the map. The map tooltip says the colour is municipal rainfall.
+- Zoom (step 1) sits outside the keyed `<GeoJSON>` and depends only on the province, so restyling 1,642 shapes does not re-trigger it. It takes its bounds from the province shapes, not from stored layer references, because a remount replaces the layers.
+- Each `/api/municipal_map` row also carries its province's `map_psgc`, so the front end can link a municipality to its province.
+- Speed: the municipal layer's `key` is quarter and view only, not province. Only the 88-shape province outline layer is keyed on province, so picking a province does not rebuild 1,642 shapes. `MapContainer` gets `preferCanvas` (draws on one canvas instead of 1,642 SVG paths). Lag is a judgement, not measured yet.
+
+**Step 3, cropland mask (optional, later):** colour only farmland inside each municipality. The data source is not chosen. Only planned if steps 1 and 2 work.
