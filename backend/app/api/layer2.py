@@ -4,6 +4,10 @@
 - GET /api/map: the dryness map views for every forecast quarter.
 - GET /api/impact?province=...&crop=...: rainfall and yield change for one province and crop.
 - GET /api/shapes: the 88 map shapes as one GeoJSON FeatureCollection, built once and kept in memory.
+- GET /api/municipal_shapes: the 1,642 municipal shapes, built once and kept in memory.
+- GET /api/municipal_map?quarter=...&view=...: rain % and colour per municipality for one forecast
+  quarter and one past-data view (normal, el_nino_2015_16, el_nino_2023_24). Needs
+  `python -m app.layer2.municipal_rain` to have been run.
 
 The routes never train. Run `python -m app.layer1_forecast.train` and `python -m app.layer2.train`
 from backend/ first. Files are read on every request, so retrained models are used without a restart.
@@ -11,7 +15,7 @@ from backend/ first. Files are read on every request, so retrained models are us
 
 from fastapi import APIRouter, HTTPException
 
-from app.layer2 import shapes
+from app.layer2 import municipal_map, shapes
 from app.layer2.features import load_lookup
 from app.layer2.impact import CROP_TYPES, load_impact, province_names
 from app.layer2.map_output import load_map_views
@@ -47,6 +51,28 @@ def get_shapes() -> dict:
     try:
         return shapes.load_shapes(shapes.SHAPES_DIR)  # read at call time, so a test can point it elsewhere
     except FileNotFoundError as missing:
+        raise missing_file(missing) from missing
+
+
+@router.get("/api/municipal_shapes")
+def get_municipal_shapes() -> dict:
+    try:
+        return municipal_map.load_municipal_shapes(municipal_map.MUNICIPAL_DIR)
+    except FileNotFoundError as missing:
+        raise missing_file(missing) from missing
+
+
+@router.get("/api/municipal_map")
+def get_municipal_map(quarter: str, view: str) -> dict:
+    try:
+        return municipal_map.load_municipal_map(quarter, view)
+    except municipal_map.BadMapRequest as bad_input:
+        raise HTTPException(status_code=422, detail=str(bad_input)) from bad_input
+    except FileNotFoundError as missing:
+        if str(missing.filename).endswith(municipal_map.MUNICIPAL_RAIN_PATH.name):
+            raise HTTPException(status_code=503, detail=(
+                f"Missing {missing.filename}. Run python -m app.layer2.municipal_rain from backend/ first."
+            )) from missing
         raise missing_file(missing) from missing
 
 

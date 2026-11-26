@@ -60,7 +60,7 @@ The fetch helper in `api.ts` throws the back end's `detail` text on any non-2xx 
   - react-leaflet's `<GeoJSON>` does not restyle on prop change, so it gets `key={quarter|view|province}`. The province is in the key so the thick outline moves to the newly chosen province.
   - The map container needs an explicit height (for example `h-[500px]`), or it is blank.
   - Caveat under the map: colours show only the central forecast, and the 2027 Q1 red count is likely exaggerated (see `specs/layer2-impact.md`, limitations).
-  - **Map upgrade (2026-11-26; details in `specs/layer2-impact.md`, section 11):** built: picking a province zooms the map to it (`ZoomToProvince` in `DrynessMap.tsx`, using react-leaflet's `useMap` and `fitBounds`); no choice shows the whole country. Planned, not built: then the map adds the 1,642 municipalities from new routes, each coloured by its own rainfall, with province borders from `/api/shapes` as a thin outline. Yield stays per province and is labelled "province estimate"; the cards' rain is labelled "province rainfall".
+  - **Map upgrade (2026-11-26; details in `specs/layer2-impact.md`, section 11):** built: picking a province zooms the map to it (`ZoomToProvince` in `DrynessMap.tsx`, using react-leaflet's `useMap` and `fitBounds`); no choice shows the whole country. Back-end routes built: `/api/municipal_shapes` and `/api/municipal_map` (details in `specs/layer2-impact.md`, section 11). Front end planned, waiting for the user's go-ahead: see section 7.
 - **OSM tiles:** an OpenStreetMap tile layer as the background, with the attribution "© OpenStreetMap contributors" linking to https://www.openstreetmap.org/copyright. The coloured provinces come from `/api/shapes`, not the tiles, so the map still works offline. Without internet, only the background is missing.
 
 ### SimulationPage (Layer 3)
@@ -95,7 +95,26 @@ The map output has colours by `map_psgc` but no geometry. The 88 province shapes
 6. SimulationPage.
 7. Checks: `npx tsc -b`, `npm run lint`, `npm run build`, plus the back-end checks in CLAUDE.md.
 
-## 6. Limitations
+## 7. Municipal map plan (2026-11-26, not built)
+
+Rules from the user:
+- The `normal`, `el_nino_2015_16` and `el_nino_2023_24` views are municipal. The `prediction` view stays per province and is labelled "Province prediction".
+- Impact cards: rain labelled "Province rainfall", yield labelled "Province estimate". The Simulation page's yields are also labelled "Province estimate".
+- A note under the map: municipal percentages can look very large in dry quarters, because the normal rain there is tiny (for example 300% of a 5 mm normal).
+
+Plan:
+- `types.ts`: `MunicipalShapes` and `MunicipalMap`. `api.ts`: `getMunicipalShapes()` and `getMunicipalMap(quarter, view)` (query string built with `URLSearchParams`).
+- `DrynessMap.tsx`:
+  - Prediction view: the existing province layer, unchanged.
+  - Municipal views: `/api/municipal_shapes` loaded once, the first time a municipal view is picked, with a loading message. `/api/municipal_map` fetched on each quarter or view change, with the ignore flag.
+  - Municipal layer built once. On new data its colours change in place (`setStyle` through a ref), and the tooltip reads the latest values from a ref, so 1,642 shapes and tooltips are not rebuilt on every change. This replaces the `key` remount trick for this layer only.
+  - Province borders from `/api/shapes` drawn on top as outlines only (no fill, `interactive: false`, so the municipal tooltips still work). This layer is keyed on the province, so the chosen province's thick outline moves (88 shapes, cheap).
+  - `preferCanvas` on `MapContainer`: Leaflet draws all shapes on one canvas instead of one SVG element each.
+  - Tooltip: municipality name, province, and its rain % ("no rainfall data" for Kalayaan).
+  - The view list shows the year from the API, as now.
+- Zoom (`ZoomToProvince`) is unchanged.
+
+## 8. Limitations
 
 - OSM tiles need internet. The map still shows the coloured provinces without them.
 - The OSM tile servers are for light use only. Fine for a class demo, not for heavy traffic.

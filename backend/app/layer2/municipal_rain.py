@@ -11,6 +11,7 @@ Which grid squares a municipality uses (pixel_rule):
 - "none": nothing within reach (for example a tiny island far from other land). No rain value.
 """
 
+import errno
 import json
 
 import numpy as np
@@ -35,7 +36,8 @@ MAX_DISTANCE_DEG = 0.05  # one grid square, about 5.5 km
 def load_municipalities(folder=MUNICIPAL_DIR) -> list[dict]:
     files = sorted(folder.glob("municities-provdist-*.json"))
     if not files:
-        raise FileNotFoundError(f"No municipal shape files in {folder}")
+        # filename is the folder, so the API's 503 names it (same as load_shapes).
+        raise FileNotFoundError(errno.ENOENT, "No municipal shape files found", str(folder))
     rows = []
     for path in files:
         for feature in json.loads(path.read_text(encoding="utf-8"))["features"]:
