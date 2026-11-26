@@ -222,10 +222,12 @@ Built.
 - The policy shares and the irrigation gain are assumptions. The user can change them.
 - Switched farmers show corn t/ha, which is higher than rainfed palay t/ha (Antique 2027 Q1 under the ONI-only forecast, when it was red: 3.74 against 2.50; the demo depends on the forecast, see section 8). That is a different crop, not a gain. Compare crops by the yield change %, which is the same (-9.1% against -9.2%).
 - Layer 2 predicts the same rain for most provinces (with the ERA5 forecast of November 2026, 71 of 86 coloured shapes have 65.7% in 2026 Q4 and 72 of 86 have 40.9% in 2027 Q1). So most provinces differ in Layer 3 only through their irrigated share and normal yields.
+- Pumps add nothing in yellow quarters, although the data shows a small yellow gap (decided November 2026: not built). Irrigated palay beat rainfed palay by +1.0 points in yellow El Niño quarters (p = 0.006; 95% interval +0.1 to +2.1 resampling rows, -0.0 to +2.3 resampling whole quarters), and by +0.9 without 1998 Q1 and 2016 Q1 (section 4). It is spread over 31 quarters, so it is steadier than the red gap, but the quarter interval touches 0. Its effect on the result would be tiny: Antique Palay 2027 Q1 (yellow, 7 pumps of 100 farmers) would move the average by about 0.07 points (7 x 1.0 / 100).
 
 ## 10. Open Items
 
 - Policy timing (decided, built): the rule is "every forecast quarter after the first" (section 3).
+- Possible future work, not planned: a graded irrigation gain (option B) that also applies about +1 point in yellow quarters, based on the yellow gap in section 4. Decided not to build now, because the gap is only borderline firm and would change the average by about 0.07 points (section 9).
 
 ## 11. Replay of a past El Niño (decided, status: back end and front end built)
 
