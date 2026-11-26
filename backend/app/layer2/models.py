@@ -84,11 +84,14 @@ class DepartureLine:
 
 
 def pooled(regressor, numeric: list[str], categorical: list[str]) -> Pipeline:
-    """One model for all rows. Categories (province, quarter, crop) become 0/1 columns."""
+    """One model for all rows. Categories (province, quarter, crop) become 0/1 columns.
+
+    The output is dense: in a sparse matrix XGBoost reads a stored 0.0 (for example ONI 0.0) as missing.
+    """
     columns = ColumnTransformer([
         ("categories", OneHotEncoder(handle_unknown="ignore"), categorical),
         ("numbers", "passthrough", numeric),
-    ])
+    ], sparse_threshold=0)
     return Pipeline([("columns", columns), ("model", regressor)])
 
 

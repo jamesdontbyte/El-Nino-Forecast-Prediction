@@ -129,3 +129,15 @@ def test_predicted_rain_replaces_observed_rain(rain_table):
     yield_rows = rain_table[rain_table["year"] == 1995].assign(rain_pct=-1.0, rain_pct_prev=-1.0)
     rows = with_predicted_rain(yield_rows, rain_table, rain_model)
     assert len(rows) == len(yield_rows) and (rows["rain_pct"] > 0).all()
+
+
+def test_xgboost_rain_model_reads_oni_zero_as_zero_not_missing():
+    # Rain falls steadily with ONI, so ONI 0.0 must predict close to ONI 0.001, not like a missing value.
+    rng = np.random.default_rng(0)
+    oni = rng.uniform(-2, 2, 2000)
+    # Many provinces, as in the real data, so the one-hot columns would make the input sparse.
+    rows = pd.DataFrame({"pcode": rng.choice([f"P{i}" for i in range(50)], 2000), "quarter": rng.integers(1, 5, 2000),
+                         "oni": oni, "oni_prev": oni})
+    model = models.RAIN_MODELS["xgboost"]().fit(rows, 100 - 20 * oni)
+    at = {value: model.predict(rows.head(1).assign(oni=value, oni_prev=value))[0] for value in [0.0, 0.001]}
+    assert at[0.0] == pytest.approx(at[0.001], abs=1)

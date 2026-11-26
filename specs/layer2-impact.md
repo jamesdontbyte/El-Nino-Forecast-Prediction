@@ -155,6 +155,7 @@ Decided: the normal yield, the yield change, the minimum data, the El Niño quar
   - Training 1981-2008 (9,072 rows), validation 2009-2016 (2,592), test 2017-2026 (3,159).
   - Chosen: XGBoost, because it has the lowest validation RMSE of the four models (scores in section 7).
   - In El Niño quarters actual rainfall is about 74% of normal and predicted 70-72% (notebook 05).
+  - **Dense input (fixed, November 2026):** the pooled models' input was a sparse matrix because of the province 0/1 columns, and XGBoost reads a stored 0.0 in a sparse matrix as missing. ONI of exactly 0.0 then predicted like a missing value (54.6% instead of 96.2% in one Q1 check). The input is now dense (`sparse_threshold=0` in `models.pooled`), with a test. No real quarter had ONI exactly 0, so XGBoost's validation scores and every live prediction stayed the same; Random Forest moved slightly (validation RMSE 34.947 to 34.889), as dense input changes its random choices. This is the baseline for the dryness check below.
 - **Step 2, yield (decided):** predicts yield change % against the 10-year-line normal, clipped to +-100%.
   - Inputs: rain % this and last quarter, ONI this and last quarter. The pooled models also get crop type, quarter and province.
   - Training rows 1997-2008 (16,073). The first scorable year is 1997 because the normal needs 10 earlier years. Validation has 12,855 rows and test 16,434. It is trained on all 6 crop types.
