@@ -40,7 +40,7 @@ def cut_year(global_path: Path, reference: xr.DataArray) -> Path:
 
 
 def main() -> None:
-    reference = xr.open_dataset(sorted(ERDDAP_DIR.glob("chirps_v2_monthly_ph_*.nc"))[0])["precip"]
+    reference = xr.open_dataset(min(ERDDAP_DIR.glob("chirps_v2_monthly_ph_*.nc")))["precip"]
     global_files = sorted(CHC_DIR.glob("chirps-v2.0.*.monthly.nc"))
     if not global_files:
         print(f"No global files in {CHC_DIR}")
