@@ -193,8 +193,8 @@ Built.
   - 2026 Q4 is the same with and without;
   - switching is skipped when Corn has no data.
 - `/api/simulate` works for:
-  - Antique Palay (borderline example): irrigated share 0.663 (2025), so 35 of 100 farmers are rainfed. The demo province is only an example: its quarter colours come from the live Layer 1 forecast, so they change when the forecast changes. Antique sits close to the red cutoff (40%). With the ONI-only forecast, 2027 Q1 was red (38.3%): with both policies at the defaults, 7 pumps and 4 switched, average -6.9% without and -6.6% with, and pumped farmers went from -9.2% to -5.6% (2.50 to 2.60 t/ha). With the ERA5 forecast (November 2026), 2027 Q1 is yellow (40.9%, 0.9 points above the cutoff): 7 pumps are given but add nothing, nobody switches, and the average is -6.3% both with and without. Under that forecast no province with palay data is red in 2027 Q1 (only Sulu, 38.7%, which has no palay data).
-  - Agusan del Sur Palay (second): irrigated share 0.493 (2025), 47 rainfed farmers. In 2027 Q1, 9 pumps and 5 switched, average -7.3% without and -7.0% with.
+  - Antique Palay (main demo, borderline): irrigated share 0.663 (2025), so 35 of 100 farmers are rainfed. The demo shows its real result under the live forecast, with no made-up red case. The demo province is only an example: its quarter colours come from the live Layer 1 forecast, so they change when the forecast changes. Antique sits close to the red cutoff (40%). With the ONI-only forecast, 2027 Q1 was red (38.3%): with both policies at the defaults, 7 pumps and 4 switched, average -6.9% without and -6.6% with, and pumped farmers went from -9.2% to -5.6% (2.50 to 2.60 t/ha). With the ERA5 forecast (November 2026), 2027 Q1 is yellow (40.9%, 0.9 points above the cutoff): 7 pumps are given but add nothing, nobody switches, and the average is -6.3% both with and without. Under that forecast no province with palay data is red in 2027 Q1 (only Sulu, 38.7%, which has no palay data).
+  - Agusan del Sur Palay (second): irrigated share 0.493 (2025), 47 rainfed farmers. With the ERA5 forecast (November 2026), 2027 Q1 is yellow (40.9%): 9 pumps are given but add nothing, nobody switches, and the average is -6.4% both with and without (rainfed -7.0%, irrigated -5.9%). With the earlier ONI-only forecast, when 2027 Q1 was red, it was 9 pumps and 5 switched, average -7.3% without and -7.0% with.
   - Batanes Irrigated Palay (the no-data case): `enough_data` is false in both quarters.
 - Nueva Ecija Palay is not a demo: its irrigated share is 0.997, so all 100 farmers are irrigated and no policy acts.
 
@@ -207,7 +207,7 @@ Built.
 - The irrigation gain is uncertain and driven by two events: the red-quarter gap between irrigated and rainfed palay (+3.6 points, p = 0.06) disappears without 1998 Q1 and 2016 Q1 (section 4). It is therefore an assumption, not a data result.
 - The policy shares and the irrigation gain are assumptions. The user can change them.
 - Switched farmers show corn t/ha, which is higher than rainfed palay t/ha (Antique 2027 Q1 under the ONI-only forecast, when it was red: 3.74 against 2.50; the demo depends on the forecast, see section 8). That is a different crop, not a gain. Compare crops by the yield change %, which is the same (-9.1% against -9.2%).
-- Layer 2 predicts the same rain for most provinces (71 of 86 shapes have 65.7% in 2026 Q4 and 38.3% in 2027 Q1). So most provinces differ in Layer 3 only through their irrigated share and normal yields.
+- Layer 2 predicts the same rain for most provinces (with the ERA5 forecast of November 2026, 71 of 86 coloured shapes have 65.7% in 2026 Q4 and 72 of 86 have 40.9% in 2027 Q1). So most provinces differ in Layer 3 only through their irrigated share and normal yields.
 
 ## 10. Open Items
 
