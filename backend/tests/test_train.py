@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from app.data.load_era5 import FEATURE_COLUMNS, RAW_COLUMNS
+from app.data.load_era5 import FEATURE_COLUMNS, RAW_COLUMNS, add_anomalies
 from app.layer1_forecast import train
 from app.layer1_forecast.features import (
     LAG_AND_ERA5_COLUMNS,
@@ -166,3 +166,47 @@ def test_hindcast_models_with_era5_use_the_era5_columns():
     assert fitted  # at least one year
     for by_lead in fitted.values():
         assert list(by_lead[1].feature_names_in_) == LAG_AND_ERA5_COLUMNS
+
+
+def make_era5_driven_data(months=850):
+    """Made-up ONI driven by last month's first ERA5 column, so ERA5 lag 1 carries real signal."""
+    rng = np.random.default_rng(2)
+    signal = rng.normal(size=months)
+    oni = np.zeros(months)
+    for t in range(1, months):
+        oni[t] = 0.8 * oni[t - 1] + 0.6 * signal[t - 1] + 0.05 * rng.normal()
+    table = make_table(oni, start="1950-01")
+    raw = {column: rng.normal(size=months) for column in RAW_COLUMNS[1:]}
+    era5 = add_anomalies(pd.DataFrame({"date": table["date"], RAW_COLUMNS[0]: signal, **raw}))
+    return table, era5
+
+
+@pytest.fixture
+def linear_only(monkeypatch):
+    # Only linear regression, so the test runs in seconds; the rule itself is tested in test_compare_era5.
+    monkeypatch.setattr(train.models, "REGRESSORS", {"linear_regression": train.models.REGRESSORS["linear_regression"]})
+
+
+def test_fit_era5_version_keeps_era5_when_it_helps(linear_only):
+    table, era5 = make_era5_driven_data()
+    decision, version = train.fit_era5_version(table, era5)
+
+    assert decision["keep_era5"] is True
+    assert decision["era5_best_mean_rmse"] < decision["oni_best_mean_rmse"]
+    assert version["model_name"] == "linear_regression"
+    assert version["lag_columns"] == LAG_AND_ERA5_COLUMNS
+    assert sorted(version["rmse_by_lead"]) == LEADS
+    # Its own band: the ERA5 validation RMSE, not the ONI-only one.
+    assert np.mean(list(version["rmse_by_lead"].values())) == pytest.approx(decision["era5_best_mean_rmse"])
+    for lead in LEADS:
+        assert list(version["models"][lead].feature_names_in_) == LAG_AND_ERA5_COLUMNS
+    assert version["hindcast_models"]  # hindcast models use ERA5 too
+    some_year = next(iter(version["hindcast_models"].values()))
+    assert list(some_year[1].feature_names_in_) == LAG_AND_ERA5_COLUMNS
+
+
+def test_fit_era5_version_returns_none_when_not_kept(linear_only, monkeypatch):
+    table, era5 = make_era5_driven_data()
+    monkeypatch.setattr(train.compare_era5, "decide", lambda validation: {"keep_era5": False})
+    decision, version = train.fit_era5_version(table, era5)
+    assert decision == {"keep_era5": False} and version is None
