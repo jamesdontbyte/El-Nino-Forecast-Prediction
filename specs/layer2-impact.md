@@ -261,6 +261,11 @@ Planned.
 For the map upgrade in section 11. Decided by the user on 2026-11-26:
 
 1. **Municipal rainfall source (decided):** CHIRPS grid, 0.05°, cut to the Philippines. The download route and file size are looked up first and shown to the user before anything large is downloaded.
+   - Found (2026-11-26): NOAA ERDDAP dataset `chirps20GlobalMonthlyP05` (CHIRPS v2.0, monthly, variable `precip` in mm/month, dimensions time, latitude, longitude, longitude -180..180, fill value -9999). It can cut a lat/lon box server-side, for example `https://coastwatch.pfeg.noaa.gov/erddap/griddap/chirps20GlobalMonthlyP05.nc?precip[(1981-01-01):1:(2025-02-01)][(4.5):1:(21.2)][(114.2):1:(126.7)]`. Latitude order is not stated, so check it on a small request first.
+   - Its data ends at 2025-02-01. That covers the normal period (1989-2018) and both El Niño events, but not the current `normal` view years (2025 Q4, 2026 Q1). A route for 2025-2026 months is not found yet.
+   - Estimated size for the Philippines box: about 250 x 334 pixels x 530 months x 4 bytes, about 180 MB uncompressed. This is a calculation, not a measured file size.
+   - CHIRPS v2 production ends after December 2026 (CHC). v3 exists. Our CSV is v2.
+3a. **`rfh_avg` years:** the HDX HAPI climate guide and the PhilRice catalog give the long-term average as 1989-01-01 to 2018-12-31. Not confirmed against our numbers until the province check runs.
 2. **Prediction view (decided): option (a).** The prediction view stays coloured per province and is labelled as a province prediction. Only the three past-data views (`normal`, `el_nino_2015_16`, `el_nino_2023_24`) are municipal. Rejected: (b) retraining the rainfall model on municipal rows, because it reopens the model choice in sections 6 and 7 and mostly relearns the province (neighbouring municipalities share pixels); (c) scaling the province prediction by each municipality's past El Niño ratio, because it is a rule, not ML, and noisy with about 10 El Niño quarters per calendar quarter.
 3. **Normal period (decided):** the same years as the CSV's `rfh_avg`, checked against the CSV (section 11) before any municipal number is trusted.
 
