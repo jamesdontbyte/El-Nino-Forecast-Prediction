@@ -43,4 +43,4 @@ Work top to bottom. Tick each box when done. Details are in specs/layer3-simulat
 - [x] Replay builder and optional `event` on /api/simulate, with tests.
 - [x] Front end: replay choice and the replay note on the Simulation page.
 - [x] Yellow-gap bootstrap in notebooks/06_crop_gap_check.py; numbers reported, no code change unless option B (graded irrigation gain) is approved.
-- [ ] Checks (ruff, pytest, type check, lint, build, /health) and demo numbers in the spec.
+- [x] Checks (ruff, pytest, type check, lint, build, /health) and demo numbers in the spec: ruff clean, 176 passed, type check, lint and build pass, /health ok, replay route works and an unknown event gives 422.
