@@ -236,6 +236,7 @@ Decided: the normal yield, the yield change, the minimum data, the El Niño quar
 Planned.
 
 - `backend/app/layer2/`: `features.py`, `models.py`, `train.py`.
+- `backend/app/layer2/grid_rain.py`: CHIRPS grid rain per shape, and the province check (`python -m app.layer2.grid_rain`).
 - `backend/app/layer2/map_output.py`: builds the map output. Run with `python -m app.layer2.map_output`.
 - `backend/app/layer2/impact.py`: builds the result for one province and crop.
 - `backend/app/api/layer2.py`: the three routes (`/api/options`, `/api/map`, `/api/impact`). The router is included in `backend/main.py`.
@@ -262,10 +263,22 @@ For the map upgrade in section 11. Decided by the user on 2026-11-26:
 
 1. **Municipal rainfall source (decided):** CHIRPS grid, 0.05°, cut to the Philippines. The download route and file size are looked up first and shown to the user before anything large is downloaded.
    - Found (2026-11-26): NOAA ERDDAP dataset `chirps20GlobalMonthlyP05` (CHIRPS v2.0, monthly, variable `precip` in mm/month, dimensions time, latitude, longitude, longitude -180..180, fill value -9999). It can cut a lat/lon box server-side, for example `https://coastwatch.pfeg.noaa.gov/erddap/griddap/chirps20GlobalMonthlyP05.nc?precip[(1981-01-01):1:(2025-02-01)][(4.5):1:(21.2)][(114.2):1:(126.7)]`. Latitude order is not stated, so check it on a small request first.
-   - Its data ends at 2025-02-01. That covers the normal period (1989-2018) and both El Niño events, but not the current `normal` view years (2025 Q4, 2026 Q1). A route for 2025-2026 months is not found yet.
+   - Its data ends at 2025-02-01. That covers the normal period (1989-2018) and both El Niño events, but not the current `normal` view years (2025 Q4, 2026 Q1).
+   - 2025-2026 at the Climate Hazards Center (checked 2026-11-26): `https://data.chc.ucsb.edu/products/CHIRPS/v2.0/global_monthly/netcdf/byYear/` has `chirps-v2.0.2025.monthly.nc` (163.9 MiB) and `chirps-v2.0.2026.monthly.nc` (136.6 MiB, dated 2026-11-13). Both are global, so they are cut to the Philippines box after download. The same folder tree has per-month `tifs/` (about 14 MiB each, up to 2026-10) and `cogs/`, but reading those needs a new library (rasterio). Not downloaded yet: waiting for the user's choice. No fallback chosen.
    - Downloaded 2026-11-26 to `data/raw/philippines/chirps_grid/`: 5 files `chirps_v2_monthly_ph_<start>_<end>.nc` (1981-1990, 1991-2000, 2001-2010, 2011-2020, 2021-2025), 174 MB in total. Box: latitude 4.525 to 21.225, longitude 114.225 to 126.725 (335 x 251 pixels), 530 months with no gaps. Latitude is stored low to high. Sea pixels are NaN (about 80% of the box). Open the files with `xarray.open_dataset` and `xarray.concat` (`open_mfdataset` needs dask, which is not installed). `test_small.nc` is a 6 KB test request.
    - CHIRPS v2 production ends after December 2026 (CHC). v3 exists. Our CSV is v2.
-3a. **`rfh_avg` years:** the HDX HAPI climate guide and the PhilRice catalog give the long-term average as 1989-01-01 to 2018-12-31. Not confirmed against our numbers until the province check runs.
+3a. **`rfh_avg` years (confirmed 2026-11-26):** the HDX HAPI climate guide and the PhilRice catalog give the long-term average as 1989-01-01 to 2018-12-31. The province check (`python -m app.layer2.grid_rain`, output `data/processed/grid_province_check.csv`) confirms it. For the 81 CHIRPS units, quarter normals rebuilt from the grid differ from the summed `rfh_avg` as follows (mean absolute difference per unit, averaged over units):
+
+   | Normal years | Mean difference | Worst unit |
+   | --- | --- | --- |
+   | 1989-2018 | 0.6% | 3.3% (NCR) |
+   | 1991-2020 | 2.2% | 4.1% |
+   | 1981-2024 | 2.7% | 4.8% |
+   | 1981-2010 | 5.3% | 10.0% |
+
+   - 1989-2018 is the closest period for 79 of 81 units.
+   - Quarter rain, 176 quarters per unit (1981 Q1 to 2024 Q4): median difference 0.0%. The 90th percentile of the absolute difference is 1.4% on average, and above 5% only for NCR (9.0%) and Pampanga (7.8%). So monthly grids summed to quarters match the CSV's ten-day sums.
+   - Pixel counts: grid 7 to 474 per unit against the CSV's 7 to 481. 17 units match exactly; the largest gaps are -28 and +20 pixels. The likely cause is boundaries: WFP's boundaries are not the same as our shapes (the HAPI guide says so), and small units like NCR and Pampanga feel this most. Not proven.
 2. **Prediction view (decided): option (a).** The prediction view stays coloured per province and is labelled as a province prediction. Only the three past-data views (`normal`, `el_nino_2015_16`, `el_nino_2023_24`) are municipal. Rejected: (b) retraining the rainfall model on municipal rows, because it reopens the model choice in sections 6 and 7 and mostly relearns the province (neighbouring municipalities share pixels); (c) scaling the province prediction by each municipality's past El Niño ratio, because it is a rule, not ML, and noisy with about 10 El Niño quarters per calendar quarter.
 3. **Normal period (decided):** the same years as the CSV's `rfh_avg`, checked against the CSV (section 11) before any municipal number is trusted.
 
