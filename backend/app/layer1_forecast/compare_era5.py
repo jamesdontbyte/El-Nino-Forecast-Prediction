@@ -7,7 +7,11 @@ Order, so the test years cannot influence the choice:
    years once, so this is a second look at them.
 
 Run from backend/:  python -m app.layer1_forecast.compare_era5
+The era5_tp_central check (validation only, no test scores):
+                    python -m app.layer1_forecast.compare_era5 tp_check
 """
+
+import sys
 
 import pandas as pd
 
@@ -95,6 +99,26 @@ def decide(validation: pd.DataFrame) -> dict:
     }
 
 
+def tp_check(table: pd.DataFrame, era5: pd.DataFrame) -> dict:
+    """Spec section 13: keep era5_tp_central only if it lowers the mean validation RMSE.
+
+    Compares the best regressor with and without the tp lags. Validation only.
+    """
+    frame = add_era5_lags(build_features(table), era5)
+    with_tp = LAG_COLUMNS + ERA5_LAG_COLUMNS
+    without_tp = [column for column in with_tp if not column.startswith("era5_tp_central")]
+    validation = score_versions({"with_tp": (frame, with_tp), "without_tp": (frame, without_tp)})
+    regressors = validation[validation["model"].isin(models.REGRESSORS)]
+    mean = regressors.groupby(["version", "model"])["rmse"].mean()
+    best_with, best_without = mean["with_tp"].min(), mean["without_tp"].min()
+    return {
+        "validation": validation,
+        "best_with_tp": (mean["with_tp"].idxmin(), float(best_with)),
+        "best_without_tp": (mean["without_tp"].idxmin(), float(best_without)),
+        "keep_tp": bool(best_with < best_without),
+    }
+
+
 def score_table(scores: pd.DataFrame, metric: str) -> pd.DataFrame:
     """Rows: version / model. Columns: leads 1 to 6 and their mean."""
     table = scores.pivot_table(index=["version", "model"], columns="lead", values=metric, sort=False)
@@ -105,6 +129,14 @@ def score_table(scores: pd.DataFrame, metric: str) -> pd.DataFrame:
 def main() -> None:
     table = models.load_enso_monthly()
     era5 = pd.read_csv(ERA5_MONTHLY_PATH, parse_dates=["date"])
+    if sys.argv[1:] == ["tp_check"]:
+        check = tp_check(table, era5)
+        for metric in ["mae", "rmse"]:
+            print(f"\nValidation {metric.upper()} by lead, with and without era5_tp_central")
+            print(score_table(check["validation"], metric).round(3).to_string())
+        print({key: value for key, value in check.items() if key != "validation"})
+        return
+
     versions = feature_versions(table, era5)
 
     validation = score_versions(versions)
