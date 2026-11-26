@@ -20,6 +20,7 @@ from sklearn.metrics import (
 from xgboost import XGBRegressor
 
 from app.data.load_enso import OUTPUT_PATH as ENSO_MONTHLY_PATH
+from app.data.load_era5 import OUTPUT_PATH as ERA5_MONTHLY_PATH
 from app.layer1_forecast.features import (
     LAG_COLUMNS,
     LEADS,
@@ -139,6 +140,13 @@ def run_validation(train: pd.DataFrame, validation: pd.DataFrame, columns: list[
 
 def load_enso_monthly() -> pd.DataFrame:
     return pd.read_csv(ENSO_MONTHLY_PATH, parse_dates=["date"])
+
+
+def load_era5_monthly() -> pd.DataFrame | None:
+    """The table saved by load_era5, or None when it has not been built. Never runs the loader."""
+    if not ERA5_MONTHLY_PATH.exists():
+        return None
+    return pd.read_csv(ERA5_MONTHLY_PATH, parse_dates=["date"])
 
 
 def main() -> None:

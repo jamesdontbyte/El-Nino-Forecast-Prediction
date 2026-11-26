@@ -6,6 +6,11 @@ Order (so the test years cannot influence the choice):
 3. Score every model once on the test years (fitted on 1950 to 2016).
 4. Refit the chosen model on all rows with known targets and save it.
 5. Fit the chosen model once per hindcast year, on ONI up to March of that year, and save those too.
+6. ERA5 (spec section 13): score ONI + ERA5 on validation and apply the fixed rule
+   (compare_era5.decide). If kept, save the best ERA5 model as the live model, with its own
+   hindcast models, and keep the ONI-only model in the bundle as the fallback. ERA5 test
+   scores are not computed here (they were recorded once, in section 7).
+   Needs data/processed/era5_monthly.csv (python -m app.data.load_era5); without it only ONI is saved.
 
 Run from backend/:  python -m app.layer1_forecast.train
 """
@@ -18,12 +23,16 @@ import joblib
 import numpy as np
 import pandas as pd
 
-from app.layer1_forecast import models
+from app.data.load_era5 import FIRST_YEAR as ERA5_FIRST_YEAR
+from app.data.load_era5 import add_anomalies
+from app.layer1_forecast import compare_era5, models
 from app.layer1_forecast.features import (
+    LAG_AND_ERA5_COLUMNS,
     LAG_COLUMNS,
     LEADS,
-    VALIDATION_LAST_YEAR,
+    add_era5_lags,
     build_features,
+    rows_before_test,
     split_by_date,
 )
 from app.layer1_forecast.labels import find_events
@@ -39,29 +48,63 @@ def hindcast_anchor(year: int) -> pd.Timestamp:
     return pd.Timestamp(year=year, month=HINDCAST_ANCHOR_MONTH, day=1)
 
 
-def fit_hindcast_models(table: pd.DataFrame, model_name: str) -> dict[int, dict]:
-    """One set of per-lead models per hindcast year, fitted only on ONI up to that year's anchor."""
+def hindcast_era5(era5: pd.DataFrame, year: int) -> pd.DataFrame:
+    """ERA5 anomalies for a hindcast year: normals from the years before it only (1950 to year - 1).
+
+    The live 1950 to 2008 normals would use years after early hindcast years, a leak.
+    """
+    return add_anomalies(era5, base_first_year=ERA5_FIRST_YEAR, base_last_year=year - 1)
+
+
+def fit_hindcast_models(table: pd.DataFrame, model_name: str, era5: pd.DataFrame | None = None) -> dict[int, dict]:
+    """One set of per-lead models per hindcast year, fitted only on data up to that year's anchor.
+
+    With `era5`, the models also use the ERA5 lags, with that year's own normals (hindcast_era5).
+    """
+    columns = LAG_COLUMNS if era5 is None else LAG_AND_ERA5_COLUMNS
     last_year = table["date"].max().year - 1
     hindcast_models = {}
     for year in range(HINDCAST_FIRST_YEAR, last_year + 1):
+        anchor = hindcast_anchor(year)
         # Cutting the table at the anchor makes every target after it unknown, and fit_per_lead drops those rows.
-        frame = build_features(table[table["date"] <= hindcast_anchor(year)])
+        frame = build_features(table[table["date"] <= anchor])
         if frame[f"target_lead{max(LEADS)}"].isna().all():
             continue  # too little data before the anchor to fit every lead
-        hindcast_models[year] = models.fit_per_lead(models.REGRESSORS[model_name], frame)
+        if era5 is not None:
+            frame = add_era5_lags(frame, hindcast_era5(era5[era5["date"] <= anchor], year))
+        hindcast_models[year] = models.fit_per_lead(models.REGRESSORS[model_name], frame, columns=columns)
     return hindcast_models
+
+
+def fit_era5_version(table: pd.DataFrame, era5: pd.DataFrame) -> tuple[dict, dict | None]:
+    """Apply the fixed ERA5 rule on validation. Returns (decision, ERA5 version or None if not kept).
+
+    The ERA5 version is refitted on every row with known targets, like the ONI-only model,
+    and its confidence band uses its own validation RMSE.
+    """
+    frame = add_era5_lags(build_features(table), era5)
+    validation = compare_era5.score_versions(
+        {"oni_only": (frame, LAG_COLUMNS), "oni_era5": (frame, LAG_AND_ERA5_COLUMNS)}
+    )
+    decision = compare_era5.decide(validation)
+    if not decision["keep_era5"]:
+        return decision, None
+
+    name = decision["era5_best"]
+    scores = validation[(validation["version"] == "oni_era5") & (validation["model"] == name)]
+    return decision, {
+        "model_name": name,
+        "models": models.fit_per_lead(models.REGRESSORS[name], frame, columns=LAG_AND_ERA5_COLUMNS),
+        "rmse_by_lead": dict(zip(scores["lead"], scores["rmse"], strict=True)),
+        "lag_columns": LAG_AND_ERA5_COLUMNS,
+        "hindcast_models": fit_hindcast_models(table, name, era5),
+    }
 
 
 def choose_best(validation_regression: pd.DataFrame) -> str:
     """Lowest mean validation RMSE across all leads. Reference rows (persistence) cannot win."""
     candidates = validation_regression[validation_regression["model"].isin(models.REGRESSORS)]
     return candidates.groupby("model")["rmse"].mean().idxmin()
-
-
-def rows_before_test(frame: pd.DataFrame) -> pd.DataFrame:
-    """Rows whose furthest target (B+6) is in the validation period or earlier."""
-    furthest_target = frame["date"] + pd.DateOffset(months=max(LEADS))
-    return frame[furthest_target.dt.year <= VALIDATION_LAST_YEAR].reset_index(drop=True)
 
 
 def predictions_by_lead(models_by_lead: dict, frame: pd.DataFrame) -> pd.DataFrame:
@@ -176,6 +219,10 @@ def load_model(directory: Path = SAVED_MODELS_DIR) -> dict:
     return joblib.load(directory / MODEL_FILE)
 
 
+def _rounded(by_lead: dict) -> dict:
+    return {str(lead): round(float(value), 4) for lead, value in by_lead.items()}
+
+
 def _per_lead(scores: pd.DataFrame, model: str, column: str) -> dict:
     part = scores[scores["model"] == model]
     return {str(lead): round(float(value), 4) for lead, value in zip(part["lead"], part[column], strict=True)}
@@ -201,17 +248,30 @@ def main() -> None:
     print(event_summary(results["events"]).round(2).to_string())
 
     # Decision 2A: refit the chosen model on every row whose target is known (1950 to now).
-    frame = results["frame"]
-    final_models = models.fit_per_lead(models.REGRESSORS[best], frame)
     newest_month = table["date"].max().strftime("%Y-%m")
-    bundle = {
+    oni_only = {
         "model_name": best,
-        "models": final_models,
+        "models": models.fit_per_lead(models.REGRESSORS[best], results["frame"]),
         "rmse_by_lead": results["rmse_by_lead"],
         "lag_columns": LAG_COLUMNS,
+        "hindcast_models": fit_hindcast_models(table, best),
+    }
+
+    era5 = models.load_era5_monthly()
+    if era5 is None:
+        print("\nNo era5_monthly.csv (run python -m app.data.load_era5). Saving the ONI-only model only.")
+        decision, era5_version = None, None
+    else:
+        decision, era5_version = fit_era5_version(table, era5)
+        print("\nERA5 decision (validation only):", decision)
+
+    # The live model is the ERA5 version when kept; the ONI-only version is its fallback.
+    bundle = {
+        **(era5_version or oni_only),
+        "uses_era5": era5_version is not None,
+        "oni_only": oni_only if era5_version else None,
         "leads": LEADS,
         "newest_oni_month": newest_month,
-        "hindcast_models": fit_hindcast_models(table, best),
         "hindcast_anchor_month": HINDCAST_ANCHOR_MONTH,
     }
     hindcast_years = sorted(bundle["hindcast_models"])
@@ -219,8 +279,15 @@ def main() -> None:
         "model_name": best,
         "chosen_by": "lowest mean validation RMSE across leads 1 to 6 (validation 2009 to 2016)",
         "validation_mean_rmse": {m: round(float(v), 4) for m, v in validation_mean.items()},
-        "rmse_by_lead_for_confidence_band": {str(k): round(float(v), 4) for k, v in results["rmse_by_lead"].items()},
-        "test_note": "Test scores describe the model fitted on 1950 to 2016. The saved model is refitted on all data.",
+        "rmse_by_lead_for_confidence_band": _rounded(bundle["rmse_by_lead"]),
+        "uses_era5": bundle["uses_era5"],
+        "era5_decision": decision,
+        "oni_only_fallback": None if not era5_version else {
+            "model_name": best, "rmse_by_lead_for_confidence_band": _rounded(oni_only["rmse_by_lead"]),
+        },
+        "era5_newest_month": None if era5 is None else era5["date"].max().strftime("%Y-%m"),
+        "test_note": "Test scores describe the ONI-only model fitted on 1950 to 2016. The saved model is refitted "
+                     "on all data. ERA5 test scores are in specs/layer1-forecast.md, section 7.",
         "test_mae_by_lead": _per_lead(test_regression, best, "mae"),
         "test_rmse_by_lead": _per_lead(test_regression, best, "rmse"),
         "final_fit": f"all anchor months with known targets, 1950-12 to {newest_month} data",
@@ -228,7 +295,7 @@ def main() -> None:
         "hindcast": {
             "years": f"{hindcast_years[0]} to {hindcast_years[-1]}",
             "anchor_month": HINDCAST_ANCHOR_MONTH,
-            "rule": "fitted only on ONI up to March of the target year",
+            "rule": "fitted only on data up to March of the target year; ERA5 normals from the years before it",
         },
         "created": date.today().isoformat(),
     }

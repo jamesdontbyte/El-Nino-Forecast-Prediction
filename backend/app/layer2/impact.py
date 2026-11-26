@@ -17,7 +17,7 @@ from app.api.forecast import forecast_from_bundle
 from app.data.load_crops import load_crops
 from app.data.load_rainfall import load_rainfall
 from app.layer1_forecast import train as layer1_train
-from app.layer1_forecast.models import load_enso_monthly
+from app.layer1_forecast.models import load_enso_monthly, load_era5_monthly
 from app.layer2 import train as layer2_train
 from app.layer2.features import (
     RAIN_TARGET,
@@ -115,7 +115,8 @@ def province_impact(province: str, crop: str, enso: pd.DataFrame, forecast_serie
 def load_impact(province: str, crop: str) -> dict:
     """Impact for one province and crop from the saved models and the data files."""
     enso = load_enso_monthly()
-    forecast = forecast_from_bundle(layer1_train.load_model(layer1_train.SAVED_MODELS_DIR), enso)
+    forecast = forecast_from_bundle(layer1_train.load_model(layer1_train.SAVED_MODELS_DIR), enso,
+                                    load_era5_monthly())
     rain_saved = joblib.load(layer2_train.SAVED_MODELS_DIR / layer2_train.RAIN_MODEL_FILE)
     yield_saved = joblib.load(layer2_train.SAVED_MODELS_DIR / layer2_train.YIELD_MODEL_FILE)
     quarters = province_impact(province, crop, enso, forecast["forecast_series"], load_rainfall(),

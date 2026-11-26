@@ -19,7 +19,7 @@ from app.api.forecast import forecast_from_bundle
 from app.data.load_rainfall import load_rainfall
 from app.layer1_forecast import train as layer1_train
 from app.layer1_forecast.labels import find_events
-from app.layer1_forecast.models import load_enso_monthly
+from app.layer1_forecast.models import load_enso_monthly, load_era5_monthly
 from app.layer2 import train as layer2_train
 from app.layer2.features import (
     RAIN_TARGET,
@@ -177,7 +177,8 @@ def load_map_views() -> list[dict]:
     """Map views from the saved models and the processed data."""
     enso = load_enso_monthly()
     # Pass the folder explicitly: load_model's default is fixed when it is defined, so tests could not redirect it.
-    forecast = forecast_from_bundle(layer1_train.load_model(layer1_train.SAVED_MODELS_DIR), enso)
+    forecast = forecast_from_bundle(layer1_train.load_model(layer1_train.SAVED_MODELS_DIR), enso,
+                                    load_era5_monthly())
     rain_model = joblib.load(layer2_train.SAVED_MODELS_DIR / layer2_train.RAIN_MODEL_FILE)["model"]
     return map_views(enso, forecast["forecast_series"], load_rainfall(), load_lookup(), rain_model)
 

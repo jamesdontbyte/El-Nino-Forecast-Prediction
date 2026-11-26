@@ -2,8 +2,14 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from app.data.load_era5 import FEATURE_COLUMNS, RAW_COLUMNS
 from app.layer1_forecast import train
-from app.layer1_forecast.features import LAG_COLUMNS, LEADS, build_features
+from app.layer1_forecast.features import (
+    LAG_AND_ERA5_COLUMNS,
+    LAG_COLUMNS,
+    LEADS,
+    build_features,
+)
 
 
 def make_table(oni_values, start="2000-01"):
@@ -135,3 +141,28 @@ def test_hindcast_year_with_too_little_data_is_skipped():
     t = np.arange(60)  # 1959-06 to 1964-05: March 1960 has fewer than 12 months behind it
     table = make_table(2.0 * np.sin(2 * np.pi * t / 40), start="1959-06")
     assert sorted(train.fit_hindcast_models(table, "linear_regression")) == [1961, 1962, 1963]
+
+
+def test_hindcast_era5_normals_use_only_earlier_years():
+    dates = pd.date_range("1950-01-01", "2020-12-01", freq="MS")
+    raw = pd.DataFrame({"date": dates, **{c: np.arange(len(dates), dtype=float) for c in RAW_COLUMNS}})
+    before = train.hindcast_era5(raw, 1990)
+
+    changed = raw.copy()
+    changed.loc[changed["date"].dt.year >= 1990, RAW_COLUMNS] += 1000  # the hindcast year and later
+    after = train.hindcast_era5(changed, 1990)
+
+    earlier = dates.year < 1990
+    assert np.allclose(before.loc[earlier, FEATURE_COLUMNS], after.loc[earlier, FEATURE_COLUMNS])
+
+
+def test_hindcast_models_with_era5_use_the_era5_columns():
+    t = np.arange(400)
+    table = make_table(2.0 * np.sin(2 * np.pi * t / 40), start="1990-01")
+    noise = np.random.default_rng(1).normal(size=(len(table), len(RAW_COLUMNS)))
+    era5 = pd.DataFrame(noise, columns=RAW_COLUMNS).assign(date=table["date"])
+
+    fitted = train.fit_hindcast_models(table, "linear_regression", era5)
+    assert fitted  # at least one year
+    for by_lead in fitted.values():
+        assert list(by_lead[1].feature_names_in_) == LAG_AND_ERA5_COLUMNS

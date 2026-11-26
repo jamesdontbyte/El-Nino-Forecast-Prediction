@@ -25,6 +25,7 @@ Report whether an El Niño is underway. If none, predict whether one is coming, 
 - `strength`: weak, moderate, or strong
 - `forecast_series`: the predicted ONI value for each of the next 1 to 6 months, with a confidence range
 - `model_used`: the name of the model that produced the result
+- `era5_used`: true when the forecast used the ERA5 features, false when it used ONI only (section 13). Absent in climatology mode.
 
 **Optional target year (added later, see section 12):** `GET /api/forecast?year=YYYY`. Without `year`, the route works exactly as above. With `year`, the response also has `mode` (`hindcast`, `forecast`, or `climatology`) and `target_year`. This is the one exception to "the user does not pick the forecast date": the year is optional and the system still picks the anchor month, horizon, and model.
 
@@ -161,6 +162,7 @@ Start and duration are derived from the forecast ONI series using the label rule
 
 - `GET /api/forecast` returns the output described in section 2. The optional `year` query is described in section 12.
 - It loads a saved model from `backend/app/saved_models/`. It never trains on request.
+- It reads `data/processed/era5_monthly.csv` on every request, like the ONI file. It never runs the ERA5 loader (no NetCDF is opened on request; a test checks this). If the file is missing, the forecast uses ONI only (`era5_used` false), not a 503.
 - If the saved model or the processed ONI file is missing, it returns 503 with a message to run `python -m app.layer1_forecast.train` first.
 - The model and the ONI file are read on every request, so a retrained model is used without restarting the server.
 - Training runs from a separate script, `train.py`, and saves the best model.
@@ -222,6 +224,7 @@ Years outside 1960 to 2100 return 422 (FastAPI's "invalid input" error).
 | section 2 fields | yes | yes | yes, as known at the anchor month | absent |
 | `mode`, `target_year`, `note` | absent | yes | yes | yes |
 | `observed_oni` in each `forecast_series` month | absent | absent | yes | absent |
+| `era5_used` | yes | yes | yes | absent |
 | `climatology` (12 rows) | absent | absent | absent | yes |
 
 Absent means the key is not in the response, so the existing front-end types and the Layer 2 and 3 callers do not change. Climatology returns only `mode`, `target_year`, `note`, `model_used` ("climatology (no model)"), and `climatology`.
@@ -236,7 +239,8 @@ Absent means the key is not in the response, so the existing front-end types and
 - **No leakage:** the saved model was refitted on all data up to 2026, so it has already seen every past year. Using it would make hindcasts look better than they really are. Instead, `train.py` also fits the chosen model once per hindcast year, on the ONI table cut at that year's anchor month (all rows with known targets, as for the live model, so every target used is at or before the anchor), and saves these in the model file. The route still never trains on request (section 8).
 - The confidence band uses the same validation RMSE as the live forecast. For early years with little training data, the real error is likely larger. Say so in the presentation.
 - `model_used` is the chosen model's name with "(hindcast)" added.
-- **Limits to state in the presentation:** the model type (linear regression) and the band RMSE were chosen and measured on 2009 to 2016, so hindcasts up to 2016 use a choice made with later data, and for 2009 to 2016 the band was measured on the same years. NOAA also recomputes past ONI with updated base periods and sea temperature data, so the inputs are slightly cleaner than what forecasters had at the time. No test can catch this.
+- **Limits to state in the presentation:** the model type (linear regression) and the band RMSE were chosen and measured on 2009 to 2016, so hindcasts up to 2016 use a choice made with later data, and for 2009 to 2016 the band was measured on the same years. NOAA also recomputes past ONI with updated base periods and sea temperature data, so the inputs are slightly cleaner than what forecasters had at the time. ERA5 is a reanalysis made after the fact, so the same is true of the ERA5 inputs. The ERA5 decision (section 13) was also made on 2009 to 2016. No test can catch this.
+- **ERA5 normals in hindcasts (decided):** the live ERA5 anomalies use 1950 to 2008 normals, which include years after early hindcast years. So each hindcast year recomputes the normals from 1950 to the year before it (`train.hindcast_era5`), for both its training rows and its anchor row. A test checks that changing data from the hindcast year on does not change earlier anomalies. Chosen over noting it as a limit because it removes the leak with one call to the existing `add_anomalies`. Early years have few years of normals (10 for 1960), so their ERA5 anomalies are noisier.
 
 **Climatology mode:**
 
@@ -256,7 +260,7 @@ Absent means the key is not in the response, so the existing front-end types and
 
 ## 13. Part B: ERA5 Pacific Features
 
-**Status:** files downloaded and checked (section 4). `load_era5.py` builds `era5_monthly.csv`, `features.add_era5_lags` joins it, and `compare_era5.py` ran the comparison: ERA5 is kept (section 7). Saving the ERA5 model, the fallback, and `era5_used` are not built yet.
+**Status:** built. `load_era5.py` builds `era5_monthly.csv`, `features.add_era5_lags` joins it, `compare_era5.py` ran the comparison (ERA5 is kept, section 7), `train.py` saves the ERA5 model with the ONI-only fallback, and the route returns `era5_used`.
 
 **Goal:** add a few ERA5 Pacific features to the existing ONI models (linear regression, Random Forest, XGBoost) and keep them only if they lower the validation RMSE. Logistic regression is only a comparison model (section 5), so it stays on ONI only. The CNN on ERA5 maps stays a separate optional item.
 
@@ -282,9 +286,12 @@ Absent means the key is not in the response, so the existing front-end types and
 - **Processing:** `backend/app/data/load_era5.py` reads the NetCDF files with xarray, averages each box (weighted by cos(latitude), because grid cells shrink toward the poles; land cells are left out), and saves `data/processed/era5_monthly.csv` with `date`, `preliminary`, the four raw columns, and the four anomaly columns. Raw and processed files stay gitignored. Run it from backend/ with `python -m app.data.load_era5` (about 25 seconds; it loads the whole grid, about 2.5 GB of data, into memory). Checked: no gaps, anomalies average 0 in 1950 to 2008, and correlations with ONI are 0.91 (SST), 0.59 (wind), -0.73 (pressure difference; 0.96 with SOI), and 0.80 (rain).
 - **Join:** `features.add_era5_lags` adds the ERA5 lags to the `build_features` rows, matched by date (lag 1 = ERA5 at B, lag 3 = ERA5 at B-2). Rows missing any ERA5 lag are dropped. With ERA5 from 1950 this drops no rows (train 691, validation 90, test 117; ERA5 starts before the first anchor, 1950-12, and ends after the newest, 2026-09). For the 1979 check it drops 339 train rows (train starts at anchor 1979-03, 352 rows left) and no validation or test rows. A test checks that changing any ERA5 or ONI value after B leaves row B unchanged.
 - **Live forecast when ERA5 is behind (decided):** if ERA5 is kept but does not reach month B, the route falls back to the ONI-only forecast. It does not return an error. The response says which version ran in a new field, `era5_used` (true or false). This replaces the earlier suggestion of a 503 error, because a 503 would also stop Layer 2 and Layer 3, which build on the same forecast. With the fallback they keep working on the ONI-only forecast.
-- **What `train.py` saves when ERA5 is kept:** the chosen ERA5 model and the best ONI-only model (the current choice rule applied to the ONI-only scores), each with its own validation RMSE per lead for the band. `model_used` names the model that actually ran.
+- **What `train.py` saves when ERA5 is kept:** the chosen ERA5 model and the best ONI-only model (the current choice rule applied to the ONI-only scores), each with its own validation RMSE per lead for the band. `model_used` names the model that actually ran (linear regression in both versions); `era5_used` says which feature set it used.
+- **How it is built:** `train.py` re-applies the fixed rule (`compare_era5.decide`) on validation every run, so a retrain with new data can drop ERA5 again. It does not compute ERA5 test scores. The model file holds the live version (ERA5 when kept) with `uses_era5` true, plus `oni_only` with its own models, band RMSE, and hindcast models. If `era5_monthly.csv` is missing at training time, only the ONI-only model is saved and `train.py` says so.
+- **Fallback rule (decided):** the route uses the ERA5 version only when the newest anchor row has every ERA5 lag (ERA5 at B and B-2). If the file is missing, ERA5 ends before B, or any needed value is empty, it uses the ONI-only version with its own band and sets `era5_used` to false. A model file saved before ERA5 also gives false. Tests cover each case and check the fallback answer is identical to an ONI-only model file.
+- **Layers 2 and 3:** `layer2/impact.py`, `layer2/map_output.py`, and `simulation/simulate.py` pass the ERA5 table to `forecast_from_bundle`, so they get the same forecast as `/api/forecast`. They only read `forecast_series`, so the new key changes nothing for them.
 - **`era5_used` in each mode:** present in the response without `year`, in `forecast` mode, and in `hindcast` mode. Absent in `climatology` (no model). If ERA5 is not kept, it is always false. Adding this key is the one change to the response without `year`; it does not break the existing front-end types.
-- **Hindcast:** past years always have ERA5, so hindcasts use the ERA5 version when ERA5 is kept.
+- **Hindcast:** past years always have ERA5, so hindcasts use the ERA5 version when ERA5 is kept, with ERA5 normals from the years before the hindcast year (section 12). If `era5_monthly.csv` is missing, hindcasts use the ONI-only hindcast models.
 
 **Comparison (same split, same metrics):**
 
@@ -296,3 +303,10 @@ Absent means the key is not in the response, so the existing front-end types and
 **Size check:** confirm the real file size and the months covered before processing.
 
 **Done when:** `era5_monthly.csv` is built and checked (no gaps, anomalies near 0 on average in the train years), the comparison table shows every model with and without ERA5, the choice is written in section 7, the API still returns every field plus `era5_used`, and a test shows the fallback to ONI only when ERA5 does not reach month B.
+
+**Done when, checked:**
+- `era5_monthly.csv` built and checked: done. 922 months, no gaps or empty values, anomalies average 0 in 1950 to 2008 (section 4 and Processing above).
+- Comparison table with every model with and without ERA5: done (section 7), plus the 1979 check and the tp check.
+- Choice written in section 7: done (ERA5 kept, linear regression, 0.436 against 0.488).
+- API returns every field plus `era5_used`: done. Checked by tests and on the live server (forecast, forecast-year, and hindcast modes; absent in climatology). Layer 2 and Layer 3 routes still return 200.
+- Fallback test: done (ERA5 file missing, ERA5 older than B, an empty value at B-2).

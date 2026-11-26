@@ -82,9 +82,9 @@ Work top to bottom. Tick each box when done. Details are in specs/layer1-forecas
 - [x] backend/app/data/load_era5.py: box averages (cos-latitude weighted), anomalies against the 1950 to 2008 monthly averages, save data/processed/era5_monthly.csv. Check for gaps.
 - [x] features.py: join ERA5 on the month, add lag 1 and lag 3 of each ERA5 feature. Tests.
 - [x] Compare every regression model with and without ERA5 on validation, on the same rows. Repeat once with ERA5 from 1979 as a check. Choose with the existing rule, then score the test period once more. Record the result in section 7.
-- [ ] Always: add `era5_used` to the response (false while ERA5 is not kept; absent in climatology).
-- [ ] If ERA5 is kept: train.py saves the ERA5 model and the best ONI-only model, each with its own validation RMSE. The route falls back to ONI only when ERA5 does not reach month B and sets `era5_used`. Hindcast models use the ERA5 features. Test the fallback.
-- [ ] Run the checks.
+- [x] Always: add `era5_used` to the response (false while ERA5 is not kept; absent in climatology).
+- [x] If ERA5 is kept: train.py saves the ERA5 model and the best ONI-only model, each with its own validation RMSE. The route falls back to ONI only when ERA5 does not reach month B and sets `era5_used`. Hindcast models use the ERA5 features. Test the fallback.
+- [x] Run the checks.
 
 ## Later (only after the above works)
 - [x] Finalize ERA5 variables and box, then download ERA5. (Downloaded. Part B above covers the rest.)

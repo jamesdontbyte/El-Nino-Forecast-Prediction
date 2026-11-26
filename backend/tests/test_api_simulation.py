@@ -46,7 +46,11 @@ def test_antique_palay_shape_and_policy_effect(real_files):
     q4, q1 = result["quarters"]
     assert q4["with"] == q4["without"] | {"pumps_given": 0, "switched": 0}  # already planted
     assert q1["with"]["pumps_given"] > 0
-    assert q1["with"]["avg_yield_change_pct"] > q1["without"]["avg_yield_change_pct"]
+    # Q1's colour follows the live forecast, so check the rule for whichever colour it gets.
+    if q1["colour"] == "red":
+        assert q1["with"]["avg_yield_change_pct"] > q1["without"]["avg_yield_change_pct"]
+    else:  # a pump adds nothing outside red quarters (layer3 spec)
+        assert q1["with"]["avg_yield_change_pct"] == q1["without"]["avg_yield_change_pct"]
 
 
 def test_default_shares_match_explicit_values(real_files):

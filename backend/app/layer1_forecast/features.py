@@ -21,6 +21,7 @@ LAG_COLUMNS = [f"oni_lag{k}" for k in LAGS]
 TARGET_COLUMNS = [f"target_lead{h}" for h in LEADS]
 ERA5_LAGS = [1, 3]
 ERA5_LAG_COLUMNS = [f"{column}_lag{k}" for column in ERA5_COLUMNS for k in ERA5_LAGS]
+LAG_AND_ERA5_COLUMNS = LAG_COLUMNS + ERA5_LAG_COLUMNS
 
 # Split by the anchor month's year (inclusive). Test runs to the latest month.
 TRAIN_LAST_YEAR = 2008
@@ -87,6 +88,11 @@ def split_by_date(frame: pd.DataFrame) -> dict[str, pd.DataFrame]:
         "validation": frame[validation].reset_index(drop=True),
         "test": frame[test].reset_index(drop=True),
     }
+
+
+def rows_before_test(frame: pd.DataFrame) -> pd.DataFrame:
+    """Rows whose furthest target (B+6) is in the validation period or earlier."""
+    return frame[_last_target_date(frame).dt.year <= VALIDATION_LAST_YEAR].reset_index(drop=True)
 
 
 def main() -> None:

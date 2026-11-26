@@ -15,7 +15,6 @@ import sys
 
 import pandas as pd
 
-from app.data.load_era5 import OUTPUT_PATH as ERA5_MONTHLY_PATH
 from app.data.load_era5 import add_anomalies
 from app.layer1_forecast import models
 from app.layer1_forecast.features import (
@@ -23,9 +22,9 @@ from app.layer1_forecast.features import (
     LAG_COLUMNS,
     add_era5_lags,
     build_features,
+    rows_before_test,
     split_by_date,
 )
-from app.layer1_forecast.train import rows_before_test
 
 CHECK_FIRST_YEAR = 1979
 EARLY_LEADS = [1, 2, 3]  # ERA5 must not be worse at these leads
@@ -128,7 +127,9 @@ def score_table(scores: pd.DataFrame, metric: str) -> pd.DataFrame:
 
 def main() -> None:
     table = models.load_enso_monthly()
-    era5 = pd.read_csv(ERA5_MONTHLY_PATH, parse_dates=["date"])
+    era5 = models.load_era5_monthly()
+    if era5 is None:
+        raise FileNotFoundError("No era5_monthly.csv. Run python -m app.data.load_era5 from backend/ first.")
     if sys.argv[1:] == ["tp_check"]:
         check = tp_check(table, era5)
         for metric in ["mae", "rmse"]:

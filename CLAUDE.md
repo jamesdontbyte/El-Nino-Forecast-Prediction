@@ -49,6 +49,7 @@ Details for each layer are in specs/requirements.md.
 ## Checks
 - Back end: run ruff and the tests (pytest) from backend/. pytest exit code 5 means no tests were found yet. It is not a failure. The first tests will be for the labels.
 - Start the server from backend/ and confirm /health still returns ok.
+- Before training, run `python -m app.data.load_era5` from backend/ so data/processed/era5_monthly.csv exists (about 25 seconds; needs the ERA5 files in data/raw/era5/). Without it, train.py saves the ONI-only model.
 - Before starting the API, run `python -m app.layer1_forecast.train` from backend/ so the saved model exists (saved_models/ is gitignored).
 - Before starting the API, also run `python -m app.layer2.train` from backend/ so the Layer 2 models exist (about a minute).
 - Before starting the API, also run `python -m app.layer2.municipal_rain` from backend/ so the municipal map data exists (about a minute; needs the CHIRPS grid files in data/raw/philippines/chirps_grid/ and chirps_chc/).
