@@ -30,7 +30,8 @@
 ## Map upgrade (specs/layer2-impact.md, section 11)
 Commit and push after each task.
 - [x] Check the municipal shapes: 88 files, 1,642 shapes, every province shape covered, codes match the lookup.
-- [ ] Decide the open items in section 10 (rainfall source, prediction view, normal period).
+- [x] Decide the open items in section 10: CHIRPS grid, prediction view option (a), normal period matching `rfh_avg`.
+- [ ] Look up the CHIRPS grid download route and size, and the `rfh_avg` years. Show the user before downloading.
 - [ ] Step 1: zoom to the chosen province (front end, see tasks-frontend.md).
 - [ ] Step 2a: download the CHIRPS grid for the Philippines (data/ is gitignored).
 - [ ] Step 2b: preprocessing script: municipal quarterly rain % to data/processed/, with the province check.

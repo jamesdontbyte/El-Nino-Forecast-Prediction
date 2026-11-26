@@ -258,11 +258,14 @@ Planned.
 
 ## 10. Open Items
 
-For the map upgrade in section 11. Waiting for the user's decision:
+For the map upgrade in section 11. Decided by the user on 2026-11-26:
 
-1. **Municipal rainfall source:** download CHIRPS v2.0 monthly 0.05° grids (1981 to now, cut to the Philippines) from the Climate Hazards Center. The exact download route and file size are not checked yet.
-2. **Prediction view per municipality:** the rainfall model predicts per province. Options: (a) the prediction view stays coloured per province, labelled as such, and only the three observed views are municipal; (b) retrain the rainfall model on municipal rows, which reopens the model choice in sections 6 and 7; (c) province prediction scaled by each municipality's past El Niño ratio to its province (a rule, not ML, and noisy with about 10 El Niño quarters per calendar quarter). Proposed: (a). (b) mostly relearns the province, because neighbouring municipalities share pixels. (c) would only be kept if it beats (a) on validation 2009-2016.
-3. **Normal period** for the municipal rain %: must match the CSV's `rfh_avg`. The period is not confirmed (to look up in the HDX dataset notes).
+1. **Municipal rainfall source (decided):** CHIRPS grid, 0.05°, cut to the Philippines. The download route and file size are looked up first and shown to the user before anything large is downloaded.
+2. **Prediction view (decided): option (a).** The prediction view stays coloured per province and is labelled as a province prediction. Only the three past-data views (`normal`, `el_nino_2015_16`, `el_nino_2023_24`) are municipal. Rejected: (b) retraining the rainfall model on municipal rows, because it reopens the model choice in sections 6 and 7 and mostly relearns the province (neighbouring municipalities share pixels); (c) scaling the province prediction by each municipality's past El Niño ratio, because it is a rule, not ML, and noisy with about 10 El Niño quarters per calendar quarter.
+3. **Normal period (decided):** the same years as the CSV's `rfh_avg`, checked against the CSV (section 11) before any municipal number is trusted.
+
+Still open:
+
 4. **Cropland source** (step 3, optional, later).
 
 ## 11. Map Upgrade (planned 2026-11-26, not built)
@@ -276,7 +279,7 @@ Three steps, each its own task, committed and pushed separately.
 
 **Step 2, municipal colours:**
 
-- Each of the 1,642 municipalities gets its own rain % of normal and colour, same rule as provinces (quarter total over quarter normal, section 6) and the same PAGASA bands on the rounded value. Missing rainfall is grey.
+- In the three past-data views, each of the 1,642 municipalities gets its own rain % of normal and colour (the prediction view stays per province, section 10), same rule as provinces (quarter total over quarter normal, section 6) and the same PAGASA bands on the rounded value. Missing rainfall is grey.
 - Rainfall per municipality: take the CHIRPS pixels whose centre is inside the shape, average their rain and their normal separately, then divide (ratio of sums, as in section 6; averaging pixel percents would soften dry quarters). Sea pixels have no value (-9999 or NaN) and are masked first.
 - If no pixel centre is inside (small municipalities), use the nearest pixel that has a value, measured from a point inside the shape (a centroid can fall at sea for odd shapes and MultiPolygons). Beyond a distance cap it is grey (cap to be set, about one pixel). Kalayaan (0 km², far from Palawan) will be grey.
 - Reading the grid uses xarray and netCDF4 on a Philippines-only cut. Point-in-shape uses matplotlib's `Path`. All three are already installed, so no new dependency.
