@@ -1,7 +1,7 @@
 """Forecast models for ONI, scored on the validation split only.
 
 One separate model per lead time (1 to 6 months). Every model uses the same lag
-features from features.py. The test split is never used here; it stays untouched
+features from features.py (ONI lags by default; `columns` picks another feature set). The test split is never used here; it stays untouched
 until the final comparison.
 
 Run from backend/:  python -m app.layer1_forecast.models   (prints the validation tables)
@@ -47,29 +47,29 @@ def make_status_classifier() -> LogisticRegression:
     return LogisticRegression(max_iter=1000)
 
 
-def lead_rows(frame: pd.DataFrame, lead: int) -> tuple[pd.DataFrame, pd.Series]:
+def lead_rows(frame: pd.DataFrame, lead: int, columns: list[str] = LAG_COLUMNS) -> tuple[pd.DataFrame, pd.Series]:
     """Features and the lead's ONI target, without rows whose target is not observed yet."""
     target = frame[f"target_lead{lead}"]
     observed = target.notna()
-    return frame.loc[observed, LAG_COLUMNS], target[observed]
+    return frame.loc[observed, columns], target[observed]
 
 
-def fit_per_lead(make_model, train: pd.DataFrame, as_status: bool = False) -> dict:
+def fit_per_lead(make_model, train: pd.DataFrame, as_status: bool = False, columns: list[str] = LAG_COLUMNS) -> dict:
     """Fit one model per lead. With as_status=True the target is the El Nino / Neutral / La Nina label."""
     models = {}
     for lead in LEADS:
-        features, target = lead_rows(train, lead)
+        features, target = lead_rows(train, lead, columns)
         if as_status:
             target = month_status(target)
         models[lead] = make_model().fit(features, target)
     return models
 
 
-def regression_scores(name: str, predict, validation: pd.DataFrame) -> pd.DataFrame:
+def regression_scores(name: str, predict, validation: pd.DataFrame, columns: list[str] = LAG_COLUMNS) -> pd.DataFrame:
     """MAE and RMSE per lead. `predict(lead, features)` returns predicted ONI values."""
     rows = []
     for lead in LEADS:
-        features, target = lead_rows(validation, lead)
+        features, target = lead_rows(validation, lead, columns)
         predicted = predict(lead, features)
         rows.append({
             "model": name,
@@ -107,15 +107,18 @@ def most_common_status(train: pd.DataFrame) -> dict[int, str]:
     return {lead: month_status(lead_rows(train, lead)[1]).mode()[0] for lead in LEADS}
 
 
-def run_validation(train: pd.DataFrame, validation: pd.DataFrame) -> dict:
-    """Fit on train, score on validation. Returns the regression and status tables."""
+def run_validation(train: pd.DataFrame, validation: pd.DataFrame, columns: list[str] = LAG_COLUMNS) -> dict:
+    """Fit on train, score on validation. Returns the regression and status tables.
+
+    `columns` applies to the regressors. The status classifier always uses ONI lags only.
+    """
     regression = [
         # Reference: no training. The forecast for B+h is the newest ONI, ONI(B).
-        regression_scores("persistence", lambda lead, x: x["oni_lag1"], validation)
+        regression_scores("persistence", lambda lead, x: x["oni_lag1"], validation, columns)
     ]
     for name, make_model in REGRESSORS.items():
-        models = fit_per_lead(make_model, train)
-        regression.append(regression_scores(name, lambda lead, x, m=models: m[lead].predict(x), validation))
+        models = fit_per_lead(make_model, train, columns=columns)
+        regression.append(regression_scores(name, lambda lead, x, m=models: m[lead].predict(x), validation, columns))
 
     classifiers = fit_per_lead(make_status_classifier, train, as_status=True)
     logistic, logistic_matrices = status_scores(

@@ -144,6 +144,18 @@ Start and duration are derived from the forecast ONI series using the label rule
 - **Test scoring:** every model is fitted on 1950 to 2016 and scored once on 2017 onward. Each lead is scored only on rows whose target is observed (116 rows at lead 1 down to 111 at lead 6).
 - **Saved model:** the chosen model is refitted on all rows with known targets (1950 to the newest ONI) and saved by `train.py`. Its confidence band uses the validation RMSE. The test scores describe the 1950 to 2016 version, so they are an estimate for the saved model.
 - **Test results (linear regression):** RMSE 0.107 at lead 1 rising to 0.664 at lead 6 (persistence 0.189 to 0.893). Status accuracy (logistic regression) 0.92 at lead 1 down to 0.51 at lead 6 (most-common-class about 0.43). Event detection: all 4 test events found at lead 1 (mean start error 0.5 months), 3 of 4 at leads 2 to 4, 2 of 4 at leads 5 and 6. Each lead's forecast series keeps its months past the newest observation, so the ongoing 2026 event is scored on real forecasts. Details are in `notebooks/02_model_comparison.ipynb`.
+- **ERA5 comparison (Part B, section 13):** run with `python -m app.layer1_forecast.compare_era5` from backend/. Same 90 validation rows for every version, same fixed settings, no tuning. Mean validation RMSE across leads 1 to 6:
+
+  | Version | Linear regression | Random Forest | XGBoost |
+  | --- | --- | --- | --- |
+  | ONI only | 0.488 | 0.561 | 0.525 |
+  | ONI + ERA5 | **0.436** | 0.540 | 0.507 |
+  | ONI only, training from 1979 (reference) | 0.484 | 0.568 | 0.553 |
+  | ONI + ERA5, anomalies and training from 1979 (check) | 0.424 | 0.554 | 0.521 |
+
+  Persistence 0.685. Linear regression validation RMSE by lead, ONI only vs ONI + ERA5: 0.130 vs 0.116, 0.296 vs 0.256, 0.456 vs 0.399, 0.587 vs 0.522, 0.690 vs 0.624, 0.771 vs 0.703. ERA5 helps linear regression at every lead, more at longer leads. It helps Random Forest and XGBoost on average but not at every lead (Random Forest +0.003 at lead 1, XGBoost +0.006 at lead 6). The 1979 check is slightly better again (0.424), so the older, less reliable ERA5 years do not seem to hurt.
+- **ERA5 decision (rule fixed before the run, validation only):** keep ERA5 only if the best ONI + ERA5 model has a lower mean validation RMSE than the best ONI-only model (0.488) and is not worse at leads 1 to 3. Result: kept. Linear regression with ERA5 (0.436) beats linear regression ONI only (0.488) and is better at leads 1, 2 and 3. The 1979 versions are a check, not candidates.
+- **ERA5 test scores (second look at the test years):** scored only after the decision, fitted on 1950 to 2016. The test years were already scored once above, so this is a second look; say so in the presentation. Linear regression test RMSE, ONI only vs ONI + ERA5: mean 0.409 vs 0.382, lead 1 0.107 vs 0.102, lead 6 0.664 vs 0.625. MAE mean 0.336 vs 0.318.
 
 ## 8. API
 
@@ -244,7 +256,7 @@ Absent means the key is not in the response, so the existing front-end types and
 
 ## 13. Part B: ERA5 Pacific Features
 
-**Status:** files downloaded and checked (section 4). `load_era5.py` builds `era5_monthly.csv`. Model code (the feature join and the comparison) is not written yet.
+**Status:** files downloaded and checked (section 4). `load_era5.py` builds `era5_monthly.csv`, `features.add_era5_lags` joins it, and `compare_era5.py` ran the comparison: ERA5 is kept (section 7). Saving the ERA5 model, the fallback, and `era5_used` are not built yet.
 
 **Goal:** add a few ERA5 Pacific features to the existing ONI models (linear regression, Random Forest, XGBoost) and keep them only if they lower the validation RMSE. Logistic regression is only a comparison model (section 5), so it stays on ONI only. The CNN on ERA5 maps stays a separate optional item.
 
