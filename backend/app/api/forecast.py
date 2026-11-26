@@ -13,14 +13,20 @@ from app.layer1_forecast.outputs import build_outputs, confidence_band
 router = APIRouter()
 
 
-def forecast_from_bundle(bundle: dict, table: pd.DataFrame) -> dict:
-    """Forecast leads 1 to 6 from the newest ONI month (anchor B) and build the API fields."""
+def forecast_from_bundle(bundle: dict, table: pd.DataFrame, models_by_lead: dict | None = None,
+                         model_name: str | None = None) -> dict:
+    """Forecast leads 1 to 6 from the newest month in `table` (anchor B) and build the API fields.
+
+    By default uses the saved live models. A hindcast passes a table cut at its anchor month
+    and that year's models instead, so both share this one path.
+    """
+    models_by_lead = models_by_lead or bundle["models"]
     latest = build_features(table).iloc[[-1]]  # newest row: its lags are known, its targets are not
     anchor = latest["date"].iloc[0]
     features = latest[bundle["lag_columns"]]
-    forecast = [bundle["models"][lead].predict(features)[0] for lead in bundle["leads"]]
+    forecast = [models_by_lead[lead].predict(features)[0] for lead in bundle["leads"]]
     band = confidence_band(anchor, forecast, bundle["rmse_by_lead"])
-    return build_outputs(table[["date", "oni"]], band, bundle["model_name"])
+    return build_outputs(table[["date", "oni"]], band, model_name or bundle["model_name"])
 
 
 @router.get("/api/forecast")

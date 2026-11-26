@@ -71,7 +71,7 @@ Work top to bottom. Tick each box when done. Details are in specs/layer1-forecas
 ## 11. Part A: optional target year (layer1 spec, section 12)
 - [x] Confirm the section 12 values: anchor March, years 1960 to 2100, no front-end year input.
 - [ ] train.py: fit the chosen model once per hindcast year on rows whose B+6 is at or before that year's anchor (March of the target year), and save them in oni_forecast.joblib keyed by year. Update the metadata file. Test: no hindcast model uses data after its anchor.
-- [ ] forecast.py: `forecast_from_bundle` takes the ONI table and the models per lead, so the live forecast and the hindcast share one path. Check its callers (layer2 impact and map, simulation) still give the same result.
+- [x] forecast.py: `forecast_from_bundle` takes the ONI table and the models per lead, so the live forecast and the hindcast share one path. Check its callers (layer2 impact and map, simulation) still give the same result.
 - [ ] outputs.py: climatology rows (mean ONI, status shares, and event start share per calendar month) from full observed years. Tests.
 - [ ] forecast.py: optional `year` query (1960 to 2100), mode choice, `mode`, `target_year`, `note`, and `observed_oni` in hindcast. Without `year`, the response is unchanged. An old model file without hindcast models returns 503. Update `save_small_model` in tests/test_api.py. Tests for each mode, the boundary years, and B in June and in December.
 - [ ] Run the checks and go through the "Done when" list in section 12.
