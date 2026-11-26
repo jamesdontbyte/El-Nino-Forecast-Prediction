@@ -6,7 +6,8 @@ Rule-based, no machine learning (specs/layer3-simulation.md):
 - A farmer's yield change % = the Layer 2 change for the quarter + the gap for its crop type
   and the rain colour (CROP_GAPS). t/ha = that crop type's normal x (1 + change / 100).
 - The local government gives pumps to rainfed palay farmers and, in red quarters, advises
-  some of the rest to switch to corn. Both act only in POLICY_QUARTER.
+  some of the rest to switch to corn. Both act in every forecast quarter after the first
+  (the first quarter's crop is already planted).
 - "without" and "with" use the same farmers. Only the policies differ.
 
 The output is a set of possible scenarios, not certain outcomes.
@@ -43,9 +44,6 @@ SEED = 42
 PUMP_SHARE = 0.2
 SWITCH_SHARE = 0.1
 IRRIGATION_GAIN = 3.6
-# Decided timing: the 2026 Q4 crop is already planted. When the forecast quarters move,
-# this needs a decision (spec section 10, open items).
-POLICY_QUARTER = "2027 Q1"
 
 IRRIGATION_GAIN_NOTE = "estimated from two strong El Niños, not statistically firm"
 DISCLAIMER = "These are possible scenarios, not certain outcomes."
@@ -167,7 +165,7 @@ def run(crop: str, impacts: dict, irrigated_share: float | None, irrigation: boo
         notes = []
 
         policy_applies = crop in POLICY_CROPS and len(rainfed) > 0
-        in_policy_quarter = entry["quarter"] == POLICY_QUARTER
+        in_policy_quarter = index > 0  # quarters are in time order; the first crop is already planted
         chosen = [name for name, on in [("Irrigation support", irrigation), ("Crop switching", switching)] if on]
         for name in chosen:
             if crop not in POLICY_CROPS + [IRRIGATED]:
@@ -176,7 +174,7 @@ def run(crop: str, impacts: dict, irrigated_share: float | None, irrigation: boo
                 notes.append(f"{name} did not apply: there are no rainfed palay farmers.")
             elif not in_policy_quarter:
                 notes.append(f"{name} did not apply: the {entry['quarter']} crop is already planted. "
-                             f"Policies act only in {POLICY_QUARTER}.")
+                             "Policies act from the second quarter on.")
 
         pumps_given = 0
         switched = 0

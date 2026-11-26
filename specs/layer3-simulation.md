@@ -1,6 +1,6 @@
 # Layer 3 Spec: Policy Simulation
 
-**Status:** draft. The policies, units, agents, timing, the two policy shares and the irrigation gain (assumptions with defaults the user can change) are decided. The crop gap table (section 4) is approved. The irrigated share rule and the irrigation gain rules are decided. Also decided (not built yet): policies act in every forecast quarter after the first, and the user may replay "El Niño 2015-16" (section 11).
+**Status:** draft. The policies, units, agents, timing, the two policy shares and the irrigation gain (assumptions with defaults the user can change) are decided. The crop gap table (section 4) is approved. The irrigated share rule and the irrigation gain rules are decided. Policies act in every forecast quarter after the first (built). Also decided (not built yet): the user may replay "El Niño 2015-16" (section 11).
 
 ## 1. Purpose
 
@@ -45,7 +45,7 @@ Which farmers get a pump or switch is also picked with the fixed seed.
 
 **Local government (one per run):** gives out pumps and issues the switching advice.
 
-**Policy timing (decided):** both policies act in every forecast quarter after the first. The first quarter's crop is already planted, so neither pumps nor a crop switch can change it. In the first quarter, "with" equals "without". Pumps go to the same farmers in every policy quarter. (Status: planned. The built code still uses 2027 Q1 only, see section 10.)
+**Policy timing (decided):** both policies act in every forecast quarter after the first. The first quarter's crop is already planted, so neither pumps nor a crop switch can change it. In the first quarter, "with" equals "without". Pumps go to the same farmers in every policy quarter. (Status: built.)
 
 **Irrigation support (decided: palay only):**
 
@@ -211,7 +211,7 @@ Built.
 
 ## 10. Open Items
 
-- Policy timing (decided): the rule is "every forecast quarter after the first" (section 3). The built code still uses 2027 Q1 only. Changing it is task 2 in section 6 of `specs/tasks-layer3.md`.
+- Policy timing (decided, built): the rule is "every forecast quarter after the first" (section 3).
 
 ## 11. Replay of a past El Niño (decided, status: planned, not built yet)
 

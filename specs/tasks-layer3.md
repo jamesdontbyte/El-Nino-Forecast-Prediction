@@ -39,7 +39,7 @@ Work top to bottom. Tick each box when done. Details are in specs/layer3-simulat
 
 ## 6. Improvements: timing rule and 2015-16 replay
 - [x] Spec and task list updated with the decisions (timing rule, replay of El Niño 2015-16, event-year irrigated share).
-- [ ] Timing rule: policies act in every forecast quarter after the first.
+- [x] Timing rule: policies act in every forecast quarter after the first.
 - [ ] Replay builder and optional `event` on /api/simulate, with tests.
 - [ ] Front end: replay choice and the replay note on the Simulation page.
 - [ ] Yellow-gap bootstrap in notebooks/06_crop_gap_check.py; numbers reported, no code change unless option B (graded irrigation gain) is approved.

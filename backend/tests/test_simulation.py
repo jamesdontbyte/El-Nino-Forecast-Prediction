@@ -69,10 +69,19 @@ def test_corn_and_irrigated_palay_ignore_policies(crop):
     assert len(result["notes"]) == 2
 
 
-def test_2026_q4_same_with_and_without():
+def test_first_quarter_same_with_and_without():
     first = sim.run("Palay", impacts(), 0.5, True, True)["quarters"][0]
     assert without_policy_info(first["with"]) == first["without"]
     assert "already planted" in first["notes"][0]
+
+
+def test_policies_act_in_every_quarter_after_the_first():
+    three_quarters = {crop_type: [quarter(label, "red", -10.0, normal)
+                                  for label in ["2026 Q4", "2027 Q1", "2027 Q2"]]
+                      for crop_type, normal in NORMALS.items()}
+    later = sim.run("Rainfed Palay", three_quarters, None, True, True)["quarters"][1:]
+    assert [q["with"]["pumps_given"] for q in later] == [20, 20]
+    assert [q["with"]["switched"] for q in later] == [10, 10]
 
 
 def test_switching_skipped_when_corn_has_no_data():
