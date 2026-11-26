@@ -32,6 +32,8 @@ RAIN_TARGET = "rain_pct_of_normal"
 YIELD_TARGET = "yield_change_pct"
 RAIN_NUMERIC = ["oni", "oni_prev"]
 RAIN_CATEGORICAL = ["quarter", "pcode"]
+DRYNESS = "el_nino_dryness"
+STRONG_ONI = 1.0  # a strong quarter has quarterly ONI of 1.0 or more (specs/layer2-impact.md)
 YIELD_NUMERIC = ["rain_pct", "rain_pct_prev", "oni", "oni_prev"]
 YIELD_NUMERIC_THIS_QUARTER = ["rain_pct", "oni"]  # for the lag check
 YIELD_CATEGORICAL = ["crop_type", "quarter", "pcode"]
@@ -102,6 +104,24 @@ def build_rain_table(rain: pd.DataFrame, oni: pd.DataFrame) -> pd.DataFrame:
     table = rain[["pcode", "year", "quarter", RAIN_TARGET]].merge(
         oni, on=["year", "quarter"], how="left", validate="many_to_one")
     return table.dropna(subset=RAIN_NUMERIC + [RAIN_TARGET]).reset_index(drop=True)
+
+
+def el_nino_dryness(rows: pd.DataFrame, history: pd.DataFrame) -> pd.Series:
+    """How much drier than the country each row's province was in past strong El Nino quarters.
+
+    For a row (province, year Y, calendar quarter q): the mean, over strong quarters of q in
+    years before Y, of the province's rain % minus the mean rain % of all provinces in that
+    quarter. Empty when there is no earlier strong quarter q. `history` is the rain table
+    (pcode, year, quarter, rain % and oni); only its years before Y are used.
+    """
+    strong = history[history["oni"] >= STRONG_ONI]
+    country = strong.groupby(["year", "quarter"])[RAIN_TARGET].transform("mean")
+    past = strong[["pcode", "year", "quarter"]].assign(departure=strong[RAIN_TARGET] - country)
+    keyed = rows[["pcode", "quarter", "year"]].assign(row=np.arange(len(rows)))
+    pairs = keyed.merge(past.rename(columns={"year": "past_year"}), on=["pcode", "quarter"])
+    pairs = pairs[pairs["past_year"] < pairs["year"]]
+    means = pairs.groupby("row")["departure"].mean().reindex(np.arange(len(rows)))
+    return pd.Series(means.to_numpy(), index=rows.index, name=DRYNESS)
 
 
 def crop_pcodes(lookup: pd.DataFrame) -> pd.DataFrame:

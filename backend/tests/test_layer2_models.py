@@ -7,6 +7,7 @@ from app.layer2.features import (
     RAIN_TARGET,
     YIELD_TARGET,
     add_previous_quarter,
+    el_nino_dryness,
     normal_yield,
     quarterly_oni,
     split_by_year,
@@ -141,3 +142,39 @@ def test_xgboost_rain_model_reads_oni_zero_as_zero_not_missing():
     model = models.RAIN_MODELS["xgboost"]().fit(rows, 100 - 20 * oni)
     at = {value: model.predict(rows.head(1).assign(oni=value, oni_prev=value))[0] for value in [0.0, 0.001]}
     assert at[0.0] == pytest.approx(at[0.001], abs=1)
+
+
+def dryness_history():
+    """Two provinces over 1980-1999. Strong quarters (ONI 1.5) are Q1 1983, 1990 and 1998."""
+    rows = []
+    for year in range(1980, 2000):
+        for quarter in [1, 2, 3, 4]:
+            oni = 1.5 if (year, quarter) in {(1983, 1), (1990, 1), (1998, 1)} else 0.2
+            for pcode, rain in [("A", 50.0 + year - 1980), ("B", 100.0)]:
+                rows.append({"pcode": pcode, "year": year, "quarter": quarter, "rain_pct_of_normal": rain, "oni": oni})
+    return pd.DataFrame(rows)
+
+
+def test_dryness_uses_only_strong_quarters_before_the_row_year():
+    history = dryness_history()
+    rows = pd.DataFrame({"pcode": ["A", "A", "A", "B", "A"], "year": [1983, 1984, 1995, 1995, 1995],
+                         "quarter": [1, 1, 1, 1, 2]})
+    values = el_nino_dryness(rows, history).tolist()
+
+    assert np.isnan(values[0])  # 1983 Q1 itself is not "before 1983"
+    assert values[1] == pytest.approx(53 - 76.5)  # 1983 only: A 53, country mean (53 + 100) / 2
+    assert values[2] == pytest.approx(((53 - 76.5) + (60 - 80)) / 2)  # 1983 and 1990
+    assert values[3] == pytest.approx(((100 - 76.5) + (100 - 80)) / 2)
+    assert np.isnan(values[4])  # no strong Q2 quarter
+
+
+def test_dryness_is_unchanged_by_data_from_the_row_year_on():
+    history = dryness_history()
+    rows = pd.DataFrame({"pcode": ["A", "B"], "year": [1995, 1995], "quarter": [1, 1]})
+    before = el_nino_dryness(rows, history)
+
+    changed = history.copy()
+    later = changed["year"] >= 1995
+    changed.loc[later, "rain_pct_of_normal"] += 500
+    changed.loc[later, "oni"] = 2.0  # every later quarter becomes strong too
+    assert el_nino_dryness(rows, changed).tolist() == pytest.approx(before.tolist())
