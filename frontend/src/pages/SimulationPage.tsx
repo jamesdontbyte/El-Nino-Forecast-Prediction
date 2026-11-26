@@ -33,6 +33,8 @@ interface Props {
 function SimulationPage({ options, province, crop, onProvinceChange, onCropChange }: Props) {
   const [irrigation, setIrrigation] = useState(false)
   const [switching, setSwitching] = useState(false)
+  // '' means the live forecast, otherwise a replay_events key.
+  const [event, setEvent] = useState('')
   // Kept as text, so the user can clear a box. An empty box is left out and the back end uses its default.
   const [numbers, setNumbers] = useState<Record<NumberName, string>>(
     () => Object.fromEntries(numberInputs.map((input) => [input.name, input.initial])) as Record<NumberName, string>,
@@ -43,7 +45,7 @@ function SimulationPage({ options, province, crop, onProvinceChange, onCropChang
   const [result, setResult] = useState<{ choice: string; simulation?: Simulation; error?: string } | null>(null)
 
   const chosen = province !== '' && crop !== ''
-  const choice = `${province}|${crop}`
+  const choice = `${province}|${crop}|${event}`
   const current = result?.choice === choice ? result : null
 
   const run = () => {
@@ -54,6 +56,7 @@ function SimulationPage({ options, province, crop, onProvinceChange, onCropChang
       pump_share: optional('pump_share'),
       switch_share: optional('switch_share'),
       irrigation_gain: optional('irrigation_gain'),
+      event: event || undefined,
     })
       .then((simulation) => setResult({ choice, simulation }))
       .catch((caught: Error) => setResult({ choice, error: caught.message }))
@@ -71,7 +74,20 @@ function SimulationPage({ options, province, crop, onProvinceChange, onCropChang
       />
 
       <section className="rounded-lg bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold">Policies</h2>
+        <label className="flex flex-col text-sm text-gray-500">
+          Scenario
+          <select
+            value={event}
+            onChange={(change) => setEvent(change.target.value)}
+            className="mt-1 w-64 rounded border px-3 py-2 text-base text-gray-900"
+          >
+            <option value="">Live forecast</option>
+            {options.replay_events.map((replay) => (
+              <option key={replay.key} value={replay.key}>Replay: {replay.label}</option>
+            ))}
+          </select>
+        </label>
+        <h2 className="mt-4 text-lg font-semibold">Policies</h2>
         <div className="mt-3 flex flex-wrap gap-6">
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={irrigation} onChange={(event) => setIrrigation(event.target.checked)} />
@@ -118,6 +134,12 @@ function SimulationPage({ options, province, crop, onProvinceChange, onCropChang
 export function SimulationResults({ simulation }: { simulation: Simulation }) {
   return (
     <div className="space-y-6">
+      {simulation.mode === 'replay' && (
+        <section role="note" className="rounded-lg border-2 border-amber-400 bg-amber-50 p-6">
+          <h2 className="text-xl font-semibold">Replay: {simulation.event}</h2>
+          <p className="mt-2 font-medium text-amber-900">{simulation.replay_note}</p>
+        </section>
+      )}
       {simulation.irrigated_share !== null && (
         <p>Share of {simulation.province} palay farmland that is irrigated: {(simulation.irrigated_share * 100).toFixed(1)}%</p>
       )}

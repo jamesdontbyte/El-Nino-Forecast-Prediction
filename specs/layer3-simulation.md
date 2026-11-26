@@ -215,7 +215,7 @@ Built.
 
 - Policy timing (decided, built): the rule is "every forecast quarter after the first" (section 3).
 
-## 11. Replay of a past El Niño (decided, status: back end built, front end not built yet)
+## 11. Replay of a past El Niño (decided, status: back end and front end built)
 
 **What it is:** the user may pick a named past event instead of the live forecast. The only choice now is "El Niño 2015-16" (key `el_nino_2015_16`). It is not a free year. It is built so another event can be added later with one entry, but no other event is added now.
 
@@ -268,7 +268,7 @@ Built.
 
 "Without" and "With" are the average yield change % over all farmers. As expected, the policies change the result only in the red quarter (2016 Q1), by +0.3 points.
 
-**Front end (planned):** the Simulation page gets a choice between the live forecast and "El Niño 2015-16". It shows the replay note clearly when replay is chosen.
+**Front end (built):** the Simulation page gets a choice between the live forecast and "El Niño 2015-16". It shows the replay note clearly when replay is chosen.
 
 **Risks and limits:**
 

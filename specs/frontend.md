@@ -70,7 +70,7 @@ The fetch helper in `api.ts` throws the back end's `detail` text on any non-2xx 
 - When the province or crop changes, clear the shown results. The user presses Run again, so old results never appear next to a different province.
 - Per quarter, "without" and "with" side by side: `avg_yield_change_pct`, the `groups` table, `pumps_given`, `switched`, `notes`. Handle `enough_data` false.
 - `irrigated_share` can be null. Show it only when present.
-- Replay choice (planned): a choice between the live forecast and "El Niño 2015-16" (`event` parameter, options from `/api/options` `replay_events`). When replay is chosen, show `replay_note` clearly. See `specs/layer3-simulation.md`, section 11.
+- Replay choice (built): a "Scenario" select with "Live forecast" (default) and each replay event; changing it clears the shown results. In replay mode an amber notice box above the results shows the event label as a heading and the back end's `replay_note`. This is a choice between the live forecast and "El Niño 2015-16" (`event` parameter, options from `/api/options` `replay_events`). When replay is chosen, show `replay_note` clearly. See `specs/layer3-simulation.md`, section 11.
 - Bottom: the `assumptions` list and the `disclaimer`.
 
 ## 4. Back-end addition: GET /api/shapes (built)

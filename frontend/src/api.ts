@@ -57,6 +57,7 @@ export interface SimulationInput {
   pump_share?: number;
   switch_share?: number;
   irrigation_gain?: number;
+  event?: string; // a replay_events key; undefined means the live forecast
 }
 
 export function getSimulation(input: SimulationInput) {

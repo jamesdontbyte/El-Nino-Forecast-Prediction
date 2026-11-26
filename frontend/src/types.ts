@@ -5,6 +5,7 @@ import type { FeatureCollection, Geometry } from "geojson";
 export interface Options {
   provinces: string[];
   crops: string[];
+  replay_events: { key: string; label: string }[]; // past El Nino events the simulation can replay
 }
 
 // GET /api/forecast
@@ -132,6 +133,9 @@ export interface SimulationQuarter {
 export interface Simulation {
   province: string;
   crop: string;
+  mode: "forecast" | "replay";
+  event: string | null; // the replayed event's label, null in forecast mode
+  replay_note: string | null; // null in forecast mode
   policies: { irrigation: boolean; switching: boolean };
   farmers: number;
   seed: number;
