@@ -51,5 +51,6 @@ Details for each layer are in specs/requirements.md.
 - Start the server from backend/ and confirm /health still returns ok.
 - Before starting the API, run `python -m app.layer1_forecast.train` from backend/ so the saved model exists (saved_models/ is gitignored).
 - Before starting the API, also run `python -m app.layer2.train` from backend/ so the Layer 2 models exist (about a minute).
+- Before starting the API, also run `python -m app.layer2.municipal_rain` from backend/ so the municipal map data exists (about a minute; needs the CHIRPS grid files in data/raw/philippines/chirps_grid/ and chirps_chc/).
 - Front end (once it exists): run the type check, the linter, and the build.
 - Report any failing check. Do not hide it.
