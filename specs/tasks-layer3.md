@@ -6,7 +6,7 @@ Work top to bottom. Tick each box when done. Details are in specs/layer3-simulat
 - [x] Policies: irrigation support and crop switching only. No subsidy, no insurance.
 - [x] Units: yield only (% of normal and t/ha). No pesos.
 - [x] Agents: about 100 farmers with a fixed seed, and one local government.
-- [x] Both policies apply in 2027 Q1 only.
+- [x] Both policies apply in 2027 Q1 only (built; replaced by the timing rule in section 6).
 - [x] Both on: irrigation goes first, then rainfed farmers without a pump may switch.
 - [x] Crop switching is kept even though the past data shows no gain.
 - [x] Pump share: default 20% of rainfed palay farmers, a stated assumption. The user can change it (`pump_share`, 0 to 1).
@@ -14,6 +14,9 @@ Work top to bottom. Tick each box when done. Details are in specs/layer3-simulat
 - [x] Irrigation gain: an assumption, default +3.6 points in red quarters, labelled "estimated from two strong El Niños, not statistically firm". The user can change it (`irrigation_gain`).
 - [x] Irrigated share rule: the latest year where all 4 quarters have palay area.
 - [x] Irrigation gain rules: no gain in yellow and green, pumped farmers keep the Rainfed Palay normal, range 0 to 10.
+- [x] Policy timing: policies act in every forecast quarter after the first.
+- [x] Replay of a past El Niño: only "El Niño 2015-16" (`el_nino_2015_16`), chosen by name, built so one entry adds another.
+- [x] Replay irrigated share: from the event year (latest complete year up to and including 2016).
 
 ## 2. Crop gap table
 - [x] Rebuild the crop gap table with the 2-of-3-months El Niño quarter rule.
@@ -33,3 +36,11 @@ Work top to bottom. Tick each box when done. Details are in specs/layer3-simulat
 - [x] ruff and pytest from backend/ (106 passed).
 - [x] Start the server, /health returns ok.
 - [x] /api/simulate for Antique Palay (main demo), Agusan del Sur Palay, and Batanes Irrigated Palay (no-data case).
+
+## 6. Improvements: timing rule and 2015-16 replay
+- [x] Spec and task list updated with the decisions (timing rule, replay of El Niño 2015-16, event-year irrigated share).
+- [ ] Timing rule: policies act in every forecast quarter after the first.
+- [ ] Replay builder and optional `event` on /api/simulate, with tests.
+- [ ] Front end: replay choice and the replay note on the Simulation page.
+- [ ] Yellow-gap bootstrap in notebooks/06_crop_gap_check.py; numbers reported, no code change unless option B (graded irrigation gain) is approved.
+- [ ] Checks (ruff, pytest, type check, lint, build, /health) and demo numbers in the spec.

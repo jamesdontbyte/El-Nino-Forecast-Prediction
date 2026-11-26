@@ -35,7 +35,7 @@ The system forecasts El Niño conditions, estimates the effect on crops in a cho
 - Crop (for example rice or corn)
 - Policy choices: irrigation support and crop switching (on or off), and optionally the pump share, switch share and irrigation gain (defaults 20%, 10% and +3.6 points)
 
-The user does not pick the forecast date, horizon, or model. The system works those out. One exception: the forecast route takes an optional target year. A past year gives a hindcast (what the system would have forecast then, next to what happened), the current or next year gives the normal forecast, and a later year gives the historical average, labelled as an average, not a forecast. The system still picks the anchor month, horizon, and model. Details are in `specs/layer1-forecast.md`, section 12.
+The user does not pick the forecast date, horizon, or model. The system works those out. One exception: the forecast route takes an optional target year. A past year gives a hindcast (what the system would have forecast then, next to what happened), the current or next year gives the normal forecast, and a later year gives the historical average, labelled as an average, not a forecast. The system still picks the anchor month, horizon, and model. Details are in `specs/layer1-forecast.md`, section 12. A second exception: the simulation may replay a named past El Niño (now only "El Niño 2015-16"), chosen by name, not by year. Details are in `specs/layer3-simulation.md`, section 11.
 
 ## 5. What the System Predicts
 
@@ -79,10 +79,11 @@ The API also returns whether an event is underway (true or false).
 - The user toggles policy choices and runs the simulation.
 - Output: outcomes with and without intervention, side by side.
 - No machine learning in this layer.
-- Policies: irrigation support and crop switching only. Both apply in 2027 Q1 only, because the 2026 Q4 crop is already planted. When both are on, irrigation goes first.
+- Policies: irrigation support and crop switching only. Both act in every forecast quarter after the first, because the first quarter's crop is already planted. When both are on, irrigation goes first.
 - Units: yield only (% of normal and t/ha). No pesos.
 - About 100 farmer agents with a fixed random seed, so the same inputs give the same result.
 - API route: `GET /api/simulate`.
+- Replay (decided, planned): the user may replay a named past El Niño instead of the live forecast. Now only "El Niño 2015-16".
 - Details are in `specs/layer3-simulation.md`.
 
 ## 6. Datasets and Algorithms
@@ -129,6 +130,6 @@ The buoy data ends in 1998, so it is useful for learning but does not count towa
 
 - ERA5 (Part B) is done: four files in two halves (120°E to 180° and 180°W to 70°W), joined on longitude. The box-average anomalies lowered the mean validation RMSE (linear regression 0.436 against 0.488), so the live forecast uses them, with an ONI-only fallback and an `era5_used` field. Details in `specs/layer1-forecast.md`, sections 7 and 13. Open: only the optional CNN on ERA5 maps.
 - Decide whether to add the Sentinel upgrade for the land view.
-- Layer 3 (details in `specs/layer3-simulation.md`): the policy list is decided (irrigation support and crop switching). The pump share (default 20%), switch share (default 10%) and irrigation gain (default +3.6 points, estimated from two strong El Niños, not statistically firm) are stated assumptions the user can change. The irrigated share rule and the crop gap table are decided. Open: what the policy timing becomes when the forecast quarters move.
+- Layer 3 (details in `specs/layer3-simulation.md`): the policy list is decided (irrigation support and crop switching). The pump share (default 20%), switch share (default 10%) and irrigation gain (default +3.6 points, estimated from two strong El Niños, not statistically firm) are stated assumptions the user can change. The irrigated share rule and the crop gap table are decided. Policy timing (decided): policies act in every forecast quarter after the first. Also decided: a replay of "El Niño 2015-16" (planned, section 11 of that spec).
 - Layer 2 map upgrade (2026-11-26): decided: CHIRPS grid for municipal rainfall, the prediction view stays per province (only the three past-data views are municipal), and the normal period matches the existing CSV. Open: the cropland source. See `specs/layer2-impact.md`, section 10.
 - Layer 2 (details in `specs/layer2-impact.md`): no open items left for the built part. Decided: what the "normal year" map shows, how the Layer 1 forecast becomes Layer 2 inputs (observed ONI months where available, Layer 1 forecast otherwise), the lag (the yield model uses this and last quarter's inputs), the algorithms (XGBoost for rainfall, the departure line for yield) and the API routes (`GET /api/options`, `GET /api/map`, `GET /api/impact`).

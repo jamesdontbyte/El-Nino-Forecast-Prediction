@@ -1,6 +1,6 @@
 # Layer 3 Spec: Policy Simulation
 
-**Status:** draft. The policies, units, agents, timing, the two policy shares and the irrigation gain (assumptions with defaults the user can change) are decided. The crop gap table (section 4) is approved. The irrigated share rule and the irrigation gain rules are decided.
+**Status:** draft. The policies, units, agents, timing, the two policy shares and the irrigation gain (assumptions with defaults the user can change) are decided. The crop gap table (section 4) is approved. The irrigated share rule and the irrigation gain rules are decided. Also decided (not built yet): policies act in every forecast quarter after the first, and the user may replay "El Niño 2015-16" (section 11).
 
 ## 1. Purpose
 
@@ -45,7 +45,7 @@ Which farmers get a pump or switch is also picked with the fixed seed.
 
 **Local government (one per run):** gives out pumps and issues the switching advice.
 
-**Policy timing (decided):** both policies apply in 2027 Q1 only. The 2026 Q4 crop is already planted, so neither pumps nor a crop switch can change it. In 2026 Q4, "with" equals "without".
+**Policy timing (decided):** both policies act in every forecast quarter after the first. The first quarter's crop is already planted, so neither pumps nor a crop switch can change it. In the first quarter, "with" equals "without". Pumps go to the same farmers in every policy quarter. (Status: planned. The built code still uses 2027 Q1 only, see section 10.)
 
 **Irrigation support (decided: palay only):**
 
@@ -132,7 +132,7 @@ These are assumptions, not data. The output lists them with the values used.
 | Assumption | Default | User can change | Query parameter |
 | --- | --- | --- | --- |
 | Number of farmers | 100 | No | - |
-| Pump share: share of rainfed palay farmers who get a pump in 2027 Q1 | 20% (0.2) | Yes, 0 to 1 | `pump_share` |
+| Pump share: share of rainfed palay farmers who get a pump (in every policy quarter) | 20% (0.2) | Yes, 0 to 1 | `pump_share` |
 | Switch share: share of rainfed palay farmers who switch to corn, only in red quarters | 10% (0.1) | Yes, 0 to 1 | `switch_share` |
 | Irrigation gain: percentage points a pump adds to a rainfed palay farmer's yield change in red quarters | +3.6 | Yes, 0 to 10 | `irrigation_gain` |
 
@@ -190,7 +190,7 @@ Built.
   - a share outside 0 to 1 or a gain outside 0 to 10 gives 422;
   - the irrigation gain changes nothing in yellow and green quarters;
   - corn crops and Irrigated Palay ignore both policies;
-  - 2026 Q4 is the same with and without;
+  - the first quarter is the same with and without;
   - switching is skipped when Corn has no data.
 - `/api/simulate` works for:
   - Antique Palay (main demo, borderline): irrigated share 0.663 (2025), so 35 of 100 farmers are rainfed. The demo shows its real result under the live forecast, with no made-up red case. The demo province is only an example: its quarter colours come from the live Layer 1 forecast, so they change when the forecast changes. Antique sits close to the red cutoff (40%). With the ONI-only forecast, 2027 Q1 was red (38.3%): with both policies at the defaults, 7 pumps and 4 switched, average -6.9% without and -6.6% with, and pumped farmers went from -9.2% to -5.6% (2.50 to 2.60 t/ha). With the ERA5 forecast (November 2026), 2027 Q1 is yellow (40.9%, 0.9 points above the cutoff): 7 pumps are given but add nothing, nobody switches, and the average is -6.3% both with and without. Under that forecast no province with palay data is red in 2027 Q1 (only Sulu, 38.7%, which has no palay data).
@@ -211,4 +211,49 @@ Built.
 
 ## 10. Open Items
 
-- Policy timing is fixed to 2027 Q1. When the forecast quarters move, decide whether the rule becomes "every forecast quarter after the first".
+- Policy timing (decided): the rule is "every forecast quarter after the first" (section 3). The built code still uses 2027 Q1 only. Changing it is task 2 in section 6 of `specs/tasks-layer3.md`.
+
+## 11. Replay of a past El Niño (decided, status: planned, not built yet)
+
+**What it is:** the user may pick a named past event instead of the live forecast. The only choice now is "El Niño 2015-16" (key `el_nino_2015_16`). It is not a free year. It is built so another event can be added later with one entry, but no other event is added now.
+
+**Quarters (in time order):** 2015 Q3, 2015 Q4, 2016 Q1, 2016 Q2. They come from `PAST_EVENTS` in `backend/app/layer2/map_output.py`.
+
+**Method (same as the forecast mode; only the rain and ONI are observed instead of forecast):**
+
+- Rain % and colour: observed (CHIRPS province rainfall). This is data.
+- Yield change: the saved Layer 2 yield model, run on the observed rain % (this and last quarter) and the observed ONI (this and last quarter). Then the crop gap table is applied, as in forecast mode.
+- Normal yield: the same 10-year straight line as Layer 2.
+- A quarter with no observed rain or no normal has `enough_data` false.
+- Irrigated share: from the event year. This means the latest complete year (same rule as section 3) up to and including 2016.
+- Policy timing: the same rule, every quarter after the first. Policies act in 2015 Q4, 2016 Q1 and 2016 Q2.
+
+**Data check (done before building):**
+
+- In 2016 Q1, 40 of 80 provinces are red. 35 of those have Rainfed Palay data. Of those 35, Corn has no data in 2 (Surigao del Norte, Surigao del Sur), so switching is skipped there.
+- 2015 Q3, 2015 Q4 and 2016 Q2 have no red provinces. So the policies change the results only in 2016 Q1.
+- Rainfed Palay has no normal in 21 of 80 provinces in 2016 Q1 and 38 of 80 in 2016 Q2 (its t/ha is then empty).
+- Corn is missing in 2 to 8 of 80 provinces per quarter.
+
+**What is data and what is assumed:**
+
+- Data: observed rain, colour, ONI, normals.
+- Model: the Layer 2 yield change.
+- National medians: the crop gap table.
+- Stated assumptions: pump share, switch share, irrigation gain, the timing rule.
+
+**Required wording (decided):** the replay output and the front end must say clearly that this is a scenario using assumed policy effects, that the +3.6 irrigation gain comes mostly from 1998 Q1 and 2016 Q1, and that it is not proof that pumps work. Proposed text for the `replay_note` field: "This is a replay scenario using assumed policy effects, not proof that pumps work. The +3.6-point irrigation gain was estimated mostly from 1998 Q1 and 2016 Q1, so replaying 2016 Q1 gives that assumption back."
+
+**API (planned):**
+
+- `GET /api/simulate` gets an optional `event` query parameter. The default is none, which means the live forecast. An unknown event gives 422.
+- `/api/options` gains `replay_events`: a list of `{key, label}`.
+- The response gains `mode` ("forecast" or "replay"), `event` (the label, or null) and `replay_note` (null in forecast mode).
+
+**Front end (planned):** the Simulation page gets a choice between the live forecast and "El Niño 2015-16". It shows the replay note clearly when replay is chosen.
+
+**Risks and limits:**
+
+- It is circular for the gain: 2016 Q1 is one of the two quarters the +3.6 came from.
+- The 40% red cliff stays.
+- Only one quarter (2016 Q1) is red.

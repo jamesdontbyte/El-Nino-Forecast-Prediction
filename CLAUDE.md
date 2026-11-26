@@ -25,6 +25,7 @@ Required output: a functional application, source code, and a presentation.
 - The user picks a province in the Philippines, a crop, and policy choices (for example irrigation support, subsidy, crop switching).
 - The user does not pick the forecast date, horizon, or model. The system works those out.
 - Exception: the user may give an optional target year on the forecast. The system still picks the start month, the horizon, and the model.
+- Second exception: the simulation may replay a named past El Niño (only "El Niño 2015-16"), chosen by name, not by year.
 
 ## Layers
 Details for each layer are in specs/requirements.md.
