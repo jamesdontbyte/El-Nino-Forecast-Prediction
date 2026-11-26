@@ -78,8 +78,8 @@ Work top to bottom. Tick each box when done. Details are in specs/layer1-forecas
 
 ## 12. Part B: ERA5 features (layer1 spec, section 13). Do not start until ERA5 is downloaded.
 - [x] Confirm the ERA5 variables and boxes requested: SST, 10 m u and v wind, mean sea level pressure, total precipitation, 30°S to 30°N, two files (120°E to 180° and 180°W to 70°W).
-- [ ] Once downloaded: check the years, months, file size, and longitude convention of both files, and that their variables, years, and months match.
-- [ ] backend/app/data/load_era5.py: box averages (cos-latitude weighted), anomalies against the 1950 to 2008 monthly averages, save data/processed/era5_monthly.csv. Check for gaps.
+- [x] Once downloaded: check the years, months, file size, and longitude convention of both files, and that their variables, years, and months match.
+- [x] backend/app/data/load_era5.py: box averages (cos-latitude weighted), anomalies against the 1950 to 2008 monthly averages, save data/processed/era5_monthly.csv. Check for gaps.
 - [ ] features.py: join ERA5 on the month, add lag 1 and lag 3 of each ERA5 feature. Tests.
 - [ ] Compare every regression model with and without ERA5 on validation, on the same rows. Repeat once with ERA5 from 1979 as a check. Choose with the existing rule, then score the test period once more. Record the result in section 7.
 - [ ] Always: add `era5_used` to the response (false while ERA5 is not kept; absent in climatology).
@@ -87,7 +87,7 @@ Work top to bottom. Tick each box when done. Details are in specs/layer1-forecas
 - [ ] Run the checks.
 
 ## Later (only after the above works)
-- [ ] Finalize ERA5 variables and box, then download ERA5. (Downloading now. Part B above covers the rest.)
+- [x] Finalize ERA5 variables and box, then download ERA5. (Downloaded. Part B above covers the rest.)
 - [ ] Optional: TAO buoy data.
 - [ ] Optional: LSTM, then CNN on ERA5.
 - [ ] Decide whether SOI comes from NOAA's soi.txt, which reaches October 2026, instead of the Kaggle file, which ends in May 2026. Not needed while the models use ONI only.

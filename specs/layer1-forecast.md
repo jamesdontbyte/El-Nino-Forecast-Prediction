@@ -46,7 +46,7 @@ All labels are built from the monthly ONI index.
 | --- | --- | --- |
 | NOAA ONI (`oni.ascii.txt`), 1950 to September 2026 | Source of truth for ONI: labels, targets, and lag features | Confirmed. Downloaded. |
 | ENSO monthly indices from Kaggle | Secondary source for RONI, Niño 3.4 anomaly, and SOI. Its ONI column is only compared with NOAA. | Confirmed. ONI and SOI compared with NOAA. |
-| ERA5 monthly data, Pacific box, full time range | Extra features and the CNN | Source confirmed. Variables and box to finalize. |
+| ERA5 monthly data, Pacific box, January 1950 to October 2026 | Extra features and the CNN | Downloaded and checked. Four files in two halves, about 1.2 GB. |
 | TAO buoy data from Kaggle | Optional learning dataset, 1980 to 1998 only | Not yet opened. |
 
 **NOAA ONI file (`oni.ascii.txt`):** the source of truth for ONI. Columns are SEAS, YR, TOTAL, and ANOM. ANOM is the ONI value. It covers 1950 to September 2026 (the ASO 2026 season).
@@ -88,7 +88,13 @@ All other columns are ignored for now.
 
 **Note:** NOAA moved its official ENSO monitoring to RONI in February 2026. We use ONI because it has a long history and the strength cutoffs were written for it. Explain this choice in the presentation.
 
-**ERA5 request (confirmed):** sea surface temperature, 10 m wind (u and v), mean sea level pressure, and total precipitation, 30°S to 30°N, as two files: 120°E to 180° and 180°W to 70°W. Both files have the same variables, years, and months, and are joined on longitude (section 13). Monthly means.
+**ERA5 request (confirmed):** sea surface temperature, 10 m wind (u and v), mean sea level pressure, and total precipitation, 30°S to 30°N, in two halves: west (120°E to 180°) and east (180°W to 70°W). Monthly means, 0.25° grid. Downloaded and checked:
+
+- **Four files, about 1.2 GB in total.** Copernicus splits each half into two files: `stepType-avgad` holds tp only (monthly sums), `stepType-avgua` holds u10, v10, msl, and sst. The folder names (`Era5_1`, `Era5_2`) do not say which half is which, so the loader picks the half from each file's longitudes, never from the name. `Era5_1` is east (152 + 618 MB), `Era5_2` is west (88 + 357 MB).
+- **Time:** every file has every month from January 1950 to October 2026 (922 months), with no gaps or duplicates. The tp files stamp each month 06:00 and the others 00:00, so every time stamp is rounded down to the first of its month before merging.
+- **Grid:** latitude runs 30 to -30 (north to south) in 0.25° steps in all four files. Both halves use -180 to 180 longitudes. The 180° column is in both halves (180 in the west, -180 in the east) and is identical in every variable and every month, so it is kept once.
+- **Preliminary months:** September and October 2026 are ERA5T (`expver` 0005), an early release that ECMWF may still revise. All earlier months are final (`expver` 0001). Decided: keep them, with a `preliminary` column in `era5_monthly.csv`.
+- **Land:** sst is empty (NaN) over land (7% of the east grid, 16% of the west). Box averages leave land cells out.
 
 Build the ENSO-only pipeline first. Add ERA5 only after the baseline works.
 
@@ -238,7 +244,7 @@ Absent means the key is not in the response, so the existing front-end types and
 
 ## 13. Part B: ERA5 Pacific Features
 
-**Status:** spec only. The ERA5 files are still downloading. No ERA5 code until they are in `data/raw/era5/`. Variables and boxes are confirmed (section 4); the years covered and the file size are checked once the download finishes.
+**Status:** files downloaded and checked (section 4). `load_era5.py` builds `era5_monthly.csv`. Model code (the feature join and the comparison) is not written yet.
 
 **Goal:** add a few ERA5 Pacific features to the existing ONI models (linear regression, Random Forest, XGBoost) and keep them only if they lower the validation RMSE. Logistic regression is only a comparison model (section 5), so it stays on ONI only. The CNN on ERA5 maps stays a separate optional item.
 
@@ -251,14 +257,17 @@ Absent means the key is not in the response, so the existing front-end types and
 | `era5_mslp_diff` | mean sea level pressure | Tahiti box (15°S to 20°S, 147°W to 152°W) minus Darwin box (10°S to 15°S, 128°E to 133°E), an ERA5 version of SOI |
 | `era5_tp_central` | total precipitation | Central equatorial Pacific: 5°S to 5°N, 170°E to 140°W |
 
-- **Anomaly base period:** the monthly averages use the train years only (1950 to 2008), so no later data leaks into the features.
+- **Anomaly base period:** the monthly averages use the train years only (1950 to 2008), so no later data leaks into the features. For the 1979 check the normals use 1979 to 2008 instead (`add_anomalies(table, base_first_year=1979)` on the raw columns).
+- **Units of the raw box averages:** `sst_nino34_rel_k` in kelvin (a difference, so the same as °C), `u10_west_ms` in m/s (positive = wind blowing east), `mslp_diff_hpa` in hPa (Tahiti minus Darwin; ERA5 gives Pa), `tp_central_mm_day` in mm per day. ERA5 monthly tp is the average daily total in metres (the file says only "m"), so it is multiplied by 1000. Check: the central box averages 3.7 mm/day, which fits a daily rate, not a monthly one.
+- **Preliminary months:** the `preliminary` column is True for ERA5T months (`expver` 0005). With lag 1 and lag 3, they only reach anchor months from September 2026 on. Right now that is one test row (anchor 2026-09), which is the live forecast row and has no observed targets, so it is never scored. No train or validation row uses them. Check this again whenever the data is updated.
+- **Newest month:** ERA5 runs to October 2026, one month past ONI (September 2026), so ERA5 currently reaches month B.
 - **Warming trend:** the Pacific is warming, so a fixed 1950 to 2008 base makes the SST anomaly run warm in later years, while ONI uses moving base periods. `era5_sst_nino34` is therefore the Niño 3.4 average minus the 20°S to 20°N average over the whole box (a relative index, the same idea as NOAA's RONI). No trend line has to be fitted.
 - **Grid conventions:** ERA5 files from the Copernicus store usually store latitude from north to south, so latitude is selected as `slice(5, -5)`. Longitude may be -180 to 180 or 0 to 360. Check the files before selecting, or the selection comes back empty.
-- **Joining the two files:** the west file (120°E to 180°) and the east file (180°W to 70°W) are joined on longitude. First convert both to 0 to 360 (180°W to 70°W becomes 180 to 290), then join them, so the Pacific is one grid from 120 to 290 with no break at the date line. If both files contain the 180° column, keep it once. Check that the variables, years, and months match before joining. The central rainfall box (170°E to 140°W) crosses the date line, so it needs the joined grid. In 0 to 360 the boxes are: Niño 3.4 190 to 240, western wind 120 to 180, Tahiti 208 to 213, Darwin 128 to 133, central rainfall 170 to 220.
+- **Joining the two files:** the west file (120°E to 180°) and the east file (180°W to 70°W) are joined on longitude. First convert both to 0 to 360 (180°W to 70°W becomes 180 to 290), then join them, so the Pacific is one grid from 120 to 290 with no break at the date line. The 180° column is in both halves: it must match in every variable and every month (the loader stops if not), then it is kept once. Check that the variables, years, months, and preliminary flags match before joining. The central rainfall box (170°E to 140°W) crosses the date line, so it needs the joined grid. In 0 to 360 the boxes are: Niño 3.4 190 to 240, western wind 120 to 180, Tahiti 208 to 213, Darwin 128 to 133, central rainfall 170 to 220.
 - **Data quality changes over time:** ERA5 wind and rainfall before 1979 (before satellites) are less reliable, and its SST source changes around 2007, near the train and validation boundary. Run the comparison once more with ERA5 starting in 1979 as a check, and drop `era5_tp_central` if it does not help.
 - **Lags:** each feature at lag 1 and lag 3, using the same anchor rule as ONI (section 6). Every feature is at or before B.
 - **Years:** 1950 onward, so the rows match the ONI rows. ERA5 starts in 1940; the extra years are not used.
-- **Processing:** `backend/app/data/load_era5.py` reads the NetCDF files with xarray, averages each box (weighted by cos(latitude), because grid cells shrink toward the poles), and saves `data/processed/era5_monthly.csv`. Raw and processed files stay gitignored.
+- **Processing:** `backend/app/data/load_era5.py` reads the NetCDF files with xarray, averages each box (weighted by cos(latitude), because grid cells shrink toward the poles; land cells are left out), and saves `data/processed/era5_monthly.csv` with `date`, `preliminary`, the four raw columns, and the four anomaly columns. Raw and processed files stay gitignored. Run it from backend/ with `python -m app.data.load_era5` (about 25 seconds; it loads the whole grid, about 2.5 GB of data, into memory). Checked: no gaps, anomalies average 0 in 1950 to 2008, and correlations with ONI are 0.91 (SST), 0.59 (wind), -0.73 (pressure difference; 0.96 with SOI), and 0.80 (rain).
 - **Join:** `features.py` joins ERA5 to the ONI table on the month. A month with ONI but no ERA5 is dropped from training.
 - **Live forecast when ERA5 is behind (decided):** if ERA5 is kept but does not reach month B, the route falls back to the ONI-only forecast. It does not return an error. The response says which version ran in a new field, `era5_used` (true or false). This replaces the earlier suggestion of a 503 error, because a 503 would also stop Layer 2 and Layer 3, which build on the same forecast. With the fallback they keep working on the ONI-only forecast.
 - **What `train.py` saves when ERA5 is kept:** the chosen ERA5 model and the best ONI-only model (the current choice rule applied to the ONI-only scores), each with its own validation RMSE per lead for the band. `model_used` names the model that actually ran.
