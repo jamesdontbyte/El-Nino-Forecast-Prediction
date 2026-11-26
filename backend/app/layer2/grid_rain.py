@@ -16,20 +16,27 @@ from app.data.load_rainfall import OUTPUT_PATH as PROVINCE_QUARTERS_PATH
 from app.data.load_rainfall import RAINFALL_PATH, load_rainfall
 from app.layer2.shapes import SHAPES_DIR, load_shapes
 
-GRID_DIR = RAW_DIR / "chirps_grid"
+GRID_DIR = RAW_DIR / "chirps_grid"  # NOAA ERDDAP, 1981-01 to 2025-02
+CHC_DIR = RAW_DIR / "chirps_chc"  # Climate Hazards Center yearly files cut to the box, 2025-01 on
 LOOKUP_PATH = RAW_DIR.parents[2] / "backend" / "app" / "data" / "province_lookup.csv"
 CHECK_PATH = PROVINCE_QUARTERS_PATH.parent / "grid_province_check.csv"
 NORMAL_YEARS = (1989, 2018)  # the HDX HAPI climate guide gives this period for the CSV's rfh_avg
 OTHER_PERIODS = [(1981, 2010), (1991, 2020), (1981, 2024)]  # compared, to see which matches best
 
 
-def load_grid(folder=GRID_DIR) -> xr.DataArray:
-    """Monthly rain (mm) as (time, latitude, longitude). Sea pixels are NaN."""
-    files = sorted(folder.glob("chirps_v2_monthly_ph_*.nc"))
+def load_grid(folders=(GRID_DIR, CHC_DIR)) -> xr.DataArray:
+    """Monthly rain (mm) as (time, latitude, longitude). Sea pixels are NaN.
+
+    Where two folders hold the same month, the later folder wins (CHC over ERDDAP). The two
+    sources are identical for January and February 2025 (specs/layer2-impact.md, section 10).
+    """
+    files = [path for folder in folders for path in sorted(folder.glob("chirps_v2_monthly_ph_*.nc"))]
     if not files:
-        raise FileNotFoundError(f"No CHIRPS grid files in {folder}")
+        raise FileNotFoundError(f"No CHIRPS grid files in {folders}")
     # open_mfdataset would need dask, which is not installed; the box is small enough to load.
-    return xr.concat([xr.open_dataset(path)["precip"].load() for path in files], dim="time")
+    grid = xr.concat([xr.open_dataset(path)["precip"].load() for path in files], dim="time")
+    keep_last = ~pd.Index(grid["time"].values).duplicated(keep="last")
+    return grid.isel(time=keep_last).sortby("time")
 
 
 def pixels_inside(geometry: dict, lats: np.ndarray, lons: np.ndarray) -> np.ndarray:

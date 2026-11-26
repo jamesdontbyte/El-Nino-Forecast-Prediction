@@ -237,6 +237,7 @@ Planned.
 
 - `backend/app/layer2/`: `features.py`, `models.py`, `train.py`.
 - `backend/app/layer2/grid_rain.py`: CHIRPS grid rain per shape, and the province check (`python -m app.layer2.grid_rain`).
+- `backend/app/layer2/municipal_rain.py`: municipal quarterly rain % (`python -m app.layer2.municipal_rain`). Tests: `backend/tests/test_grid_rain.py`, `backend/tests/test_municipal_rain.py`.
 - `backend/app/layer2/map_output.py`: builds the map output. Run with `python -m app.layer2.map_output`.
 - `backend/app/layer2/impact.py`: builds the result for one province and crop.
 - `backend/app/api/layer2.py`: the three routes (`/api/options`, `/api/map`, `/api/impact`). The router is included in `backend/main.py`.
@@ -318,5 +319,25 @@ Three steps, each its own task, committed and pushed separately.
 - Zoom (step 1) sits outside the keyed `<GeoJSON>` and depends only on the province, so restyling 1,642 shapes does not re-trigger it. It takes its bounds from the province shapes, not from stored layer references, because a remount replaces the layers.
 - Each `/api/municipal_map` row also carries its province's `map_psgc`, so the front end can link a municipality to its province.
 - Speed: the municipal layer's `key` is quarter and view only, not province. Only the 88-shape province outline layer is keyed on province, so picking a province does not rebuild 1,642 shapes. `MapContainer` gets `preferCanvas` (draws on one canvas instead of 1,642 SVG paths). Lag is a judgement, not measured yet.
+
+**Step 2b results (built 2026-11-26):** `python -m app.layer2.municipal_rain` (about a minute) writes `data/processed/municipal_rain_quarterly.csv`: 300,304 rows, 1,642 municipalities, 1981 Q1 to 2026 Q3 (2026 Q4 is incomplete: the grid ends in October). Columns: `adm3_psgc`, `name`, `map_psgc`, `year`, `quarter`, `rain_mm`, `normal_mm` (1989-2018 mean), `rain_pct_of_normal`, `n_pixels`, `pixel_rule`.
+
+- Grid: ERDDAP to December 2024, CHC from January 2025 (`load_grid` in `grid_rain.py`). The province check gives the same results on the joined grid (183 quarters, to 2026 Q3).
+- Square rule (decided by the code, shown to the user): `inside` = land squares whose centre is inside the shape. Otherwise `nearest` = the land square nearest to a point inside the shape, within 0.05 degrees (one square, about 5.5 km); this includes the square holding that point. Otherwise `none`.
+- Result: inside 1,573, nearest 68, none 1 (Kalayaan, Palawan: 0 km², far out at sea). Of the 125 municipalities under one square (31 km²): inside 81, nearest 43, none 1. Squares per municipality: median 4, max 72.
+- No normal is 0 or below, and no value is missing apart from Kalayaan.
+- Municipal against own province (CSV), for the map quarters (1,632 municipalities with a province value):
+
+  | Quarter | Green / yellow / red | Colour differs from province | Provinces with 2+ colours | Median gap |
+  | --- | --- | --- | --- | --- |
+  | 2025 Q4 (normal view) | 1,635 / 6 / 0 | 6 | 2 of 88 | 4.6 points |
+  | 2026 Q1 (normal view) | 1,326 / 315 / 0 | 44 | 11 | 4.5 |
+  | 2015 Q4 | 627 / 992 / 22 | 66 | 14 | 3.4 |
+  | 2016 Q1 | 128 / 685 / 828 | 187 | 35 | 2.5 |
+  | 2023 Q4 | 921 / 715 / 5 | 188 | 42 | 3.7 |
+  | 2024 Q1 | 347 / 1,111 / 183 | 167 | 39 | 3.7 |
+
+  Plus 1 grey (Kalayaan) in every quarter.
+- Large gaps (up to about 175 points) come from dry-season quarters with a tiny normal (2 to 21 mm in Q1 on the west coast of Luzon, for example Olongapo and Zambales towns): a few mm gives 200-400%. These are all green either way. `nearest` municipalities have a median gap of 4.7 points against 4.0 for `inside`, so the fallback is not worse.
 
 **Step 3, cropland mask (optional, later):** colour only farmland inside each municipality. The data source is not chosen. Only planned if steps 1 and 2 work.
