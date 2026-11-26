@@ -1,5 +1,6 @@
 // One function per back-end route. The Vite proxy forwards /api to FastAPI (see vite.config.ts).
 import type {
+  Climatology,
   Forecast,
   Impact,
   MapQuarter,
@@ -34,6 +35,11 @@ async function getJson<T>(path: string): Promise<T> {
 
 export const getOptions = () => getJson<Options>("/api/options");
 export const getForecast = () => getJson<Forecast>("/api/forecast");
+// The back end picks the mode from the year; a later year returns the historical average instead.
+export const getForecastForYear = (year: number) =>
+  getJson<Forecast | Climatology>(
+    `/api/forecast?${new URLSearchParams({ year: String(year) })}`,
+  );
 export const getMap = () => getJson<MapQuarter[]>("/api/map");
 export const getShapes = () => getJson<Shapes>("/api/shapes");
 export const getMunicipalShapes = () =>

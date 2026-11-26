@@ -17,6 +17,7 @@ export interface ForecastMonth {
   oni: number;
   lower: number;
   upper: number;
+  observed_oni?: number | null; // hindcast only: what really happened (null if not yet observed)
 }
 
 export interface Forecast {
@@ -28,6 +29,27 @@ export interface Forecast {
   strength: Strength | null;
   forecast_series: ForecastMonth[];
   model_used: string;
+  era5_used: boolean; // false: the ERA5 file is missing, so the ONI-only model ran
+  mode?: "forecast" | "hindcast"; // the year fields are sent only when a year is asked for
+  target_year?: number;
+  note?: string;
+}
+
+// GET /api/forecast?year= for a year after the forecast window: a historical average, not a forecast.
+export interface ClimatologyMonth {
+  month: number; // 1 to 12
+  mean_oni: number;
+  el_nino_share: number; // 0 to 1, share of years in this status in this month
+  neutral_share: number;
+  la_nina_share: number;
+  event_start_share: number; // share of years an El Niño event started in this month
+}
+export interface Climatology {
+  mode: "climatology";
+  target_year: number;
+  note: string;
+  model_used: string;
+  climatology: ClimatologyMonth[];
 }
 
 // GET /api/impact
